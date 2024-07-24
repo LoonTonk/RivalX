@@ -1,0 +1,129 @@
+/*
+ *------
+ * BGA framework: Gregory Isabelli & Emmanuel Colin & BoardGameArena
+ * RivalX implementation : © LoonTonk
+ *
+ * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
+ * See http://en.boardgamearena.com/#!doc/Studio for more information.
+ * -----
+ */
+/*
+ * This file is enforced by schema file located at 'bga-ts-template/template/schema'. If you are using VS Code, this schema file will be linked to this file automatically if 'generate-vscode-files' is set to true in 'template.config.jsonc. Hover over any fields for more information.
+ *
+ * Game state machine is a tool used to facilitate game development. Please check the BGA Studio presentation about game state to understand this, and associated documentation.
+ *
+ * !! It is not a good idea to modify this file when a game is running !!
+ */
+{
+	"$schema": "../../node_modules/bga-ts-template/schema/gamestates.schema.json",
+
+	// The initial state. Please do not modify.
+	"1": {
+		"name": "gameSetup",
+		"description": "",
+		"type": "manager",
+		"action": "stGameSetup",
+		"transitions": { "": 2 }
+	},
+
+	// Note: ID=2: your first state
+	"2": {
+		"name": "wildPlacement",
+		"description": "${actplayer} must place all wild tokens on the board",
+		"descriptionmyturn": "${you} must place all wild tokens on the board",
+		"type": "activeplayer",
+		"possibleactions": {
+			"placeWild": [
+				{ "name": "x", "type": "AT_int" },
+				{ "name": "y", "type": "AT_int" }
+			],
+			"selectWild":  [
+				{ "name": "x", "type": "AT_int" },
+				{ "name": "y", "type": "AT_int" }
+			],
+			"finishTurn": []
+		},
+		"transitions": { "finishTurn": 11 }
+	},
+
+	"10": {
+        "name": "playerTurn",
+        "description": "${actplayer} must play a token",
+        "descriptionmyturn": "${you} must play a token",
+        "type": "activeplayer",
+        "possibleactions": {
+            "playToken": [
+                { "name": "x", "type": "AT_int" },
+                { "name": "y", "type": "AT_int" }
+            ]
+        },
+        "transitions": {
+            "playToken": 11
+        }
+    },
+
+    "11": {
+        "name": "nextPlayer",
+        "type": "game",
+        "action": "stNextPlayer",
+        "updateGameProgression": true,
+        "transitions": {
+            "nextTurn": 10,
+			"playPattern": 20,
+            "endGame": 99
+        }
+    },
+
+	"20": {
+        "name": "wildMovement",
+        "description": "${actplayer} has scored a pattern and must move wilds",
+        "descriptionmyturn": "${you} have scored a pattern and must move wilds",
+        "type": "activeplayer",
+		"possibleactions": {
+			"placeWild": [
+				{ "name": "x", "type": "AT_int" },
+				{ "name": "y", "type": "AT_int" }
+			],
+			"selectWild":  [
+				{ "name": "x", "type": "AT_int" },
+				{ "name": "y", "type": "AT_int" }
+			],
+			"finishTurn": []
+		},
+		"transitions": { "finishTurn": 11 }
+    },
+
+/*
+	// Examples:
+	
+	"2": {
+		"name": "nextPlayer",
+		"description": "",
+		"type": "game",
+		"action": "stNextPlayer",
+		"updateGameProgression": true,
+		"transitions": { "endGame": 99, "nextPlayer": 10 }
+	},
+
+	"10": {
+		"name": "playerTurn",
+		"description": "${actplayer} must play a card or pass",
+		"descriptionmyturn": "${you} must play a card or pass",
+		"type": "activeplayer",
+		"possibleactions": [ "playCard", "pass" ],
+		"transitions": { "playCard": 2, "pass": 2 }
+	},
+*/
+
+	// Final state.
+	// Please do not modify (and do not overload action/args methods}.
+	"99": {
+		"name": "gameEnd",
+		"description": "End of game",
+		"type": "manager",
+		"action": "stGameEnd",
+		"args": "argGameEnd",
+		/* TODO: get the arguments that are passed at the end of a game.. */
+		"argsType": "object"
+	}
+}
