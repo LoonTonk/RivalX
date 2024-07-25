@@ -36,8 +36,12 @@ $machinestates = array(
 		'description' => clienttranslate('${actplayer} must place all wild tokens on the board'),
 		'descriptionmyturn' => clienttranslate('${you} must place all wild tokens on the board'),
 		'type' => 'activeplayer',
-		'possibleactions' => ['placeWild', 'selectWild', 'finishTurn'],
+		'args' => 'argwildPlacement',
+		'possibleactions' => ['placeWild', 'selectWild', 'moveWild', 'finishTurn'],
 		'transitions' => array(
+			'placeWild' => 2,
+			'selectWild' => 2,
+			'moveWild' => 2,
 			'finishTurn' => 11,
 		),
 	),
@@ -46,9 +50,10 @@ $machinestates = array(
 		'description' => clienttranslate('${actplayer} must play a token'),
 		'descriptionmyturn' => clienttranslate('${you} must play a token'),
 		'type' => 'activeplayer',
-		'possibleactions' => ['playToken'],
+		'args' => 'argplayerTurn',
+		'possibleactions' => ['placeToken'],
 		'transitions' => array(
-			'playToken' => 11,
+			'placeToken' => 11,
 		),
 	),
 	11 => array(
@@ -58,19 +63,21 @@ $machinestates = array(
 		'updateGameProgression' => true,
 		'transitions' => array(
 			'nextTurn' => 10,
-			'playPattern' => 20,
+			'changePattern' => 20,
 			'endGame' => 99,
 		),
 		'description' => '',
 	),
 	20 => array(
-		'name' => 'wildMovement',
+		'name' => 'changePattern',
 		'description' => clienttranslate('${actplayer} has scored a pattern and must move wilds'),
 		'descriptionmyturn' => clienttranslate('${you} have scored a pattern and must move wilds'),
 		'type' => 'activeplayer',
-		'possibleactions' => ['placeWild', 'selectWild', 'finishTurn'],
+		'args' => 'argchangePattern',
+		'possibleactions' => ['moveWild', 'selectWild', 'finishTurn'],
 		'transitions' => array(
 			'finishTurn' => 11,
+			'wildPattern' => 99,
 		),
 	),
 	99 => array(

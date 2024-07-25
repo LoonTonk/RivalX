@@ -88,7 +88,22 @@ class RivalX extends Table
         //$this->initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
         // TODO: setup the initial game situation here
-       
+        $sql = "INSERT INTO board (board_x,board_y,board_player,board_player_tile) VALUES ";
+        $sql_values = array();
+        list( $blueplayer_id, $redplayer_id ) = array_keys( $players ); //TODO: remove after testing
+        for( $x=1; $x<=8; $x++ )
+        {
+            for( $y=1; $y<=8; $y++ )
+            {
+               if ($x==1 && $y==1) { //TODO: remove after testing
+                    $sql_values[] = "('$x','$y','$blueplayer_id','$redplayer_id')";
+                } else {
+                    $sql_values[] = "('$x','$y',-1,-1)";
+                }
+            }
+        }
+        $sql .= implode( ',', $sql_values );
+        self::DbQuery( $sql );
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
@@ -117,7 +132,9 @@ class RivalX extends Table
         $result['players'] = $this->getCollectionFromDb( $sql );
   
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
-  
+        $sql = "SELECT board_x x, board_y y, board_player player, board_player_tile player_tile
+        FROM board";
+        $result['board'] = self::getObjectListFromDB( $sql );
         return $result;
     }
 
@@ -150,9 +167,97 @@ class RivalX extends Table
     function getBoard()
     {
         $sql = "SELECT board_x x, board_y y, board_player player, board_player_tile player_tile FROM board";
-        return self::getDoubleKeyCollectionFromDB( $sql, true );
+        return self::getDoubleKeyCollectionFromDB( $sql );
     }
 
+    function getNumWilds() {
+        $sql = "SELECT board_player, COUNT(*) FROM board WHERE (board_player) IN (0)"; // Find the number of spots with token id 0, i.e wild token
+        $result = self::getCollectionFromDb( $sql, true );
+        $this->dump("result", $result);
+        if (isset($result[0])) { // for some reason the code breaks without this even though [0] should always be set?
+            return $result[0];
+        } else {
+            return 0;
+        }
+    }
+
+    function wildPlacementPossibleMoves() {
+        $board = self::getBoard();
+        $possibleMoves = array();
+        return $possibleMoves;
+    }
+
+        /* for ($x = 1; $x <= 8; $x++) {
+            for ($y = 1; $y <= 8; $y++) {
+                if ($board[$x][$y])
+            }
+        }
+        if( $board[ $x ][ $y ] === null ) // If there is already a disc on this place, this can't be a valid move
+        {
+            // For each directions...
+            $directions = array(
+                array( -1,-1 ), array( -1,0 ), array( -1, 1 ), array( 0, -1),
+                array( 0,1 ), array( 1,-1), array( 1,0 ), array( 1, 1 )
+            );
+
+            foreach( $directions as $direction )
+            {
+
+                    $current_x = $x + $direction[0];
+                    $current_y = $y + $direction[1];
+                    if( $current_x<1 || $current_x>8 || $current_y<1 || $current_y>8 )
+                        continue; // Out of the board => stop here for this direction
+
+                    if ($board[ $current_x ][ $current_y ] !== null)
+                        // push the disc to be turned over
+                        $turnedOverDiscs[] = array( 'x' => $current_x, 'y' => $current_y );
+
+
+                // Starting from the square we want to place a disc...
+                $current_x = $x;
+                $current_y = $y;
+                $bContinue = true;
+                $mayBeTurnedOver = array();
+
+                while( $bContinue )
+                {
+                    // Go to the next square in this direction
+                    $current_x += $direction[0];
+                    $current_y += $direction[1];
+
+                    if( $current_x<1 || $current_x>8 || $current_y<1 || $current_y>8 )
+                        $bContinue = false; // Out of the board => stop here for this direction
+                    else if( $board[ $current_x ][ $current_y ] === null )
+                        $bContinue = false; // An empty square => stop here for this direction
+                    else if( $board[ $current_x ][ $current_y ] != $player )
+                    {
+                        // There is a disc from our opponent on this square
+                        // => add it to the list of the "may be turned over", and continue on this direction
+                        $mayBeTurnedOver[] = array( 'x' => $current_x, 'y' => $current_y );
+                    }
+                    else if( $board[ $current_x ][ $current_y ] == $player )
+                    {
+                        // This is one of our disc
+
+                        if( count( $mayBeTurnedOver ) == 0 )
+                        {
+                            // There is no disc to be turned over between our 2 discs => stop here for this direction
+                            $bContinue = false;
+                        }
+                        else
+                        {
+                            // We found some disc to be turned over between our 2 discs
+                            // => add them to the result and stop here for this direction
+                            $turnedOverDiscs = array_merge( $turnedOverDiscs, $mayBeTurnedOver );
+                            $bContinue = false;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $turnedOverDiscs;
+    } */
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -164,16 +269,16 @@ class RivalX extends Table
         (note: each method below must match an input method in rivalx.action.php)
     */
 
-    function playToken( int $x, int $y )
+    function placeToken( int $x, int $y )
     {
         // Check that this player is active and that this action is possible at this moment
-        self::checkAction( 'playToken' );
+        self::checkAction( 'placeToken' );
         $board = self::getBoard();
         $player_id = self::getActivePlayerId();
         // Let's place a token at x,y and return all "$returned" discs to the active player
         // $other_id = self::getUniqueValueFromDb( "SELECT player_id FROM player WHERE player_id!='$player_id'" ); // TODO: fix for > 2 players
         // something something something if it's bombs every disc in turnedoverDiscs gets flipped to the next player's disc
-        $sql = "UPDATE board SET board_player = '$player_id' WHERE (board_x, board_y) IN ('$x','$y')";
+        $sql = "UPDATE board SET board_player = '$player_id' WHERE (board_x, board_y) IN (('$x','$y'))";
 
         self::DbQuery( $sql );
 
@@ -208,11 +313,12 @@ class RivalX extends Table
             "scores" => $newScores
         ) ); */
         // Then, go to the next state
-        $this->gamestate->nextState( 'playToken' );
+        $this->gamestate->nextState( 'placeToken' );
     }
 
     function finishTurn() {
-        return;
+        self::checkAction('finishTurn');
+        $this->gamestate->nextState( 'finishTurn' );
     }
 
     function selectWild($x, $y) {
@@ -220,7 +326,26 @@ class RivalX extends Table
     }
 
     function placeWild($x,$y) {
-        return;
+        self::checkAction( 'placeWild' );
+
+        $board = self::getBoard();
+        $sql = "UPDATE board SET board_player = 0 WHERE (board_x, board_y) IN (('$x','$y'))";
+        self::DbQuery( $sql );
+        $numWilds = self::getNumWilds();
+        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a wild token, ${numWilds}/5 placed' ), array(
+            'player_id' => self::getActivePlayerId(),
+            'player_name' => self::getActivePlayerName(),
+            'numWilds' => $numWilds,
+            'x' => $x,
+            'y' => $y,
+            'wild' => true
+        ) );
+        $this->gamestate->nextState( 'placeWild' );
+    }
+
+    function moveWild($old_x, $old_y, $new_x, $new_y) {
+        self::checkAction('moveWild');
+
     }
     /*
     
@@ -259,6 +384,16 @@ class RivalX extends Table
         game state.
     */
 
+    function argwildPlacement() {
+        return array(
+            'possibleMoves' => self::wildPlacementPossibleMoves(),
+            'numWilds' => self::getNumWilds()
+        );
+    }
+
+    function argPlayerTurn() {
+        return array( 'possibleMoves' => self::wildPlacementPossibleMoves()); //TODO: change
+    }
     /*
     
     Example for game state "MyGameState":
@@ -285,6 +420,10 @@ class RivalX extends Table
         The action method of state X is called everytime the current game state is set to X.
     */
     
+    function stNextPlayer() {
+        $player_id = self::activeNextPlayer(); //TODO: add a LOT of checks
+        return;
+    }
     /*
     
     Example for game state "MyGameState":

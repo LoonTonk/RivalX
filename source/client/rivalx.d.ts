@@ -13,6 +13,7 @@ declare global {
 
 	/** @gameSpecific Add game specific notifications / arguments here. See {@link NotifTypes} for more information. */
 	interface NotifTypes {
+		'playToken': { x: number, y: number, player_id: number, wild: boolean };
 		// [name: string]: any; // Uncomment to remove type safety on notification names and arguments
 	}
 

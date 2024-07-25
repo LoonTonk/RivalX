@@ -29,13 +29,16 @@
     // Placeholder for validating the positions.
 }
 
+.squarecolor_0000FF { background-image: url("img/blue.png"); }
+.squarecolor_FF0000 { background-image: url("img/red.png"); }
 
-.tokencolor_00FFFF, .tokencolor_FFFF00 {width: 100%; height: 100%;
-	position: absolute; -webkit-backface-visibility: hidden; backface-visibility: hidden; } //TODO: add more colors
+.tokencolor_0000FF, .tokencolor_FF0000, .tokencolor_0 {width: 56px; height: 56px;
+	position: absolute; } //TODO: add more colors
 
 	//TODO: Change these to be from the same image and look nicer
-.tokencolor_00FFFF { background-image: url('img/bluex.png'); } // Blue token
-.tokencolor_363636 { background-image: url('img/redx.png'); } // Red token
+.tokencolor_0 { background-image: url('img/wildx.png'); } // Wild token
+.tokencolor_0000FF { background-image: url('img/bluex.png'); } // Blue token
+.tokencolor_FF0000 { background-image: url('img/redx.png'); } // Red token
 
 
 

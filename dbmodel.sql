@@ -21,8 +21,8 @@
 CREATE TABLE IF NOT EXISTS `board` (
     `board_x` smallint(5) unsigned NOT NULL,
     `board_y` smallint(5) unsigned NOT NULL,
-    `board_player` int(10) unsigned DEFAULT NULL,
-    `board_player_tile` int(10) unsigned DEFAULT NULL,
+    `board_player` int(10) DEFAULT -1,
+    `board_player_tile` int(10) DEFAULT -1,
     PRIMARY KEY (`board_x`,`board_y`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

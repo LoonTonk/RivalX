@@ -32,6 +32,11 @@
 		"description": "${actplayer} must place all wild tokens on the board",
 		"descriptionmyturn": "${you} must place all wild tokens on the board",
 		"type": "activeplayer",
+		"args": "argwildPlacement",
+        "argsType": {
+            "possibleMoves": "boolean[][]",
+			"numWilds": "number"
+        },
 		"possibleactions": {
 			"placeWild": [
 				{ "name": "x", "type": "AT_int" },
@@ -41,9 +46,15 @@
 				{ "name": "x", "type": "AT_int" },
 				{ "name": "y", "type": "AT_int" }
 			],
+			"moveWild":  [
+				{ "name": "old_x", "type": "AT_int" },
+				{ "name": "old_y", "type": "AT_int" },
+				{ "name": "new_x", "type": "AT_int" },
+				{ "name": "new_y", "type": "AT_int" }
+			],
 			"finishTurn": []
 		},
-		"transitions": { "finishTurn": 11 }
+		"transitions": { "placeWild": 2, "selectWild": 2, "moveWild": 2, "finishTurn": 10 }
 	},
 
 	"10": {
@@ -51,14 +62,18 @@
         "description": "${actplayer} must play a token",
         "descriptionmyturn": "${you} must play a token",
         "type": "activeplayer",
+		"args": "argplayerTurn",
+        "argsType": {
+            "possibleMoves": "boolean[][]"
+        },
         "possibleactions": {
-            "playToken": [
+            "placeToken": [
                 { "name": "x", "type": "AT_int" },
                 { "name": "y", "type": "AT_int" }
             ]
         },
         "transitions": {
-            "playToken": 11
+            "placeToken": 11
         }
     },
 
@@ -69,20 +84,26 @@
         "updateGameProgression": true,
         "transitions": {
             "nextTurn": 10,
-			"playPattern": 20,
+			"changePattern": 20,
             "endGame": 99
         }
     },
 
 	"20": {
-        "name": "wildMovement",
+        "name": "changePattern",
         "description": "${actplayer} has scored a pattern and must move wilds",
         "descriptionmyturn": "${you} have scored a pattern and must move wilds",
         "type": "activeplayer",
+		"args": "argchangePattern",
+        "argsType": {
+            "possibleMoves": "boolean[][]"
+        },
 		"possibleactions": {
-			"placeWild": [
-				{ "name": "x", "type": "AT_int" },
-				{ "name": "y", "type": "AT_int" }
+			"moveWild":  [
+				{ "name": "old_x", "type": "AT_int" },
+				{ "name": "old_y", "type": "AT_int" },
+				{ "name": "new_x", "type": "AT_int" },
+				{ "name": "new_y", "type": "AT_int" }
 			],
 			"selectWild":  [
 				{ "name": "x", "type": "AT_int" },
@@ -90,7 +111,7 @@
 			],
 			"finishTurn": []
 		},
-		"transitions": { "finishTurn": 11 }
+		"transitions": { "finishTurn": 11, "wildPattern": 99 }
     },
 
 /*

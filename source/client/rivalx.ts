@@ -15,7 +15,7 @@ import "ebg/counter";
 /** The root for all of your game code. */
 class RivalX extends Gamegui
 {
-	// myGlobalValue: number = 0;
+	numWilds = 0;
 	// myGlobalArray: string[] = [];
 
 	/** @gameSpecific See {@link Gamegui} for more information. */
@@ -28,21 +28,21 @@ class RivalX extends Gamegui
 	override setup(gamedatas: Gamedatas): void
 	{
 		console.log( "Starting game setup" );
-		this.addTokenOnBoard( 1, 1, this.player_id );
 		// Place the tokens on the board
 		for( let i in gamedatas.board )
 			{
 				let square = gamedatas.board[i];
 		
-				if( square?.player ) { // If square is defined and has a player
-					this.addTokenOnBoard( square.x, square.y, square.player );
+				if( square !== undefined && square.player != -1 ) { // If square is defined and has a player
+					this.addTokenOnBoard( square.x, square.y, square.player, square.player == 0 ); //Adds wild token if player id is 0
 				}
-				if (square?.player_tile) {
-					//TODO : this.addTileOnBoard(square.x, square.y, square.player_tile);
+				if (square !== undefined && square.player_tile != -1) {
+					console.log("square is " + square + " square.player_tile is " + square.player_tile);
+					this.addTileOnBoard(square.x, square.y, square.player_tile);
 				}
 			}
 	
-		dojo.query( '.square' ).connect( 'onclick', this, 'onPlayToken' );
+		dojo.query( '.square' ).connect( 'onclick', this, 'onplaceToken' );
 		// Setup game notifications to handle (see "setupNotifications" method below)
 		this.setupNotifications(); // <-- Keep this line
 		
@@ -81,44 +81,64 @@ class RivalX extends Gamegui
 	/** @gameSpecific See {@link Gamegui.onUpdateActionButtons} for more information. */
 	override onUpdateActionButtons(stateName: GameStateName, args: AnyGameStateArgs | null): void
 	{
-		console.log( 'onUpdateActionButtons: ' + stateName, args );
-
-		if(!this.isCurrentPlayerActive())
-			return;
-
-		/*switch( stateName )
-		{
-		case 'dummmy':
-			// Add buttons if needed
-			break;
-		} **/
+		console.log( 'onUpdateActionButtons: ' + stateName, args );                   
+		if (this.isCurrentPlayerActive()) {            
+			switch( stateName ) {
+			case 'wildPlacement':
+				if (args?.numWilds !== undefined && args.numWilds >= 5) {
+					console.log("should add button now");
+					this.addActionButton( 'finishTurn_button', _('Finish Turn'), 'onfinishTurn' ); 
+				}
+				break;
+			}
+		}
 	}
 
 	///////////////////////////////////////////////////
 	//// Utility methods
 	
 	/** Adds a token matching the given player to the board at the specified location. */
-	addTokenOnBoard( x: number, y: number, player_id: number )
+	addTokenOnBoard( x: number, y: number, player_id: number, wild: boolean )
 	{
-		let player = this.gamedatas.players[ player_id ];
-		if (!player)
-			throw new Error( 'Unknown player id: ' + player_id );
-
-		
-		dojo.place( this.format_block( 'jstpl_token', {
-			color: player.color,
-			x_y: `${x}_${y}`
-		} ) , 'board' );
-
-		this.placeOnObject( `token_${x}_${y}`, `overall_player_board_${player_id}` );
-		this.slideToObject( `token_${x}_${y}`, `square_${x}_${y}` ).play();
+		if (wild) {
+			dojo.place( this.format_block( 'jstpl_token', { // Player is placing a wild token, color should be 0 instead of player color
+				color: 0,
+				x_y: `${x}_${y}`
+			} ) , 'board' );
+		} else {
+			let player = this.gamedatas.players[ player_id ];
+			if (!player) {
+				throw new Error( 'Unknown player id: ' + player_id );
+			}
+			dojo.place( this.format_block( 'jstpl_token', {
+				color: player.color,
+				x_y: `${x}_${y}`
+			} ) , 'board' );
+		}
+		if (player_id != 0) {
+			this.placeOnObject( `token_${x}_${y}`, `overall_player_board_${player_id}` );
+			this.slideToObject( `token_${x}_${y}`, `square_${x}_${y}` ).play();
+		} else {
+			this.placeOnObject( `token_${x}_${y}`, `square_${x}_${y}` );
+		}
 	}
 
+	/** Adds a tile matching the given player to the board at the specified location. */
+	addTileOnBoard( x: number, y: number, player_id: number)
+	{
+		let player = this.gamedatas.players[ player_id ];
+		if (!player) {
+			throw new Error( 'Unknown player id: ' + player_id );
+		}
+		const square = $<HTMLElement>( `square_${x}_${y}` );
+		square?.classList.add(`squarecolor_${player.color}`)
+	}
+	
 
 	///////////////////////////////////////////////////
 	//// Player's action
 	
-	onPlayToken( evt: Event )
+	onplaceToken( evt: Event )
 	{
 		// Stop this event propagation
 		evt.preventDefault();
@@ -129,20 +149,46 @@ class RivalX extends Gamegui
 		// TODO: Check if this is a possible move
 
 		// Check that this action is possible at this moment (shows error dialog if not possible)
-		if( !this.checkAction( 'playToken' ) )
-			return;
-
-		let [_square_, x, y] = evt.currentTarget.id.split('_');
-		const token = $<HTMLElement>( `token_${x}_${y}` );
-		if (token !== null) { // Check if there is already a token at this square's location
-			this.showMessage("Cannot play here, there is already a token", "error");
+		if( this.checkAction( 'placeToken', true ) ) {
+			// Get the clicked square x and y
+			// Note: square id format is "square_X_Y"
+			let [_square_, x, y] = evt.currentTarget.id.split('_');
+			const token = $<HTMLElement>( `token_${x}_${y}` );
+			if (token !== null) { // Check if there is already a token at this square's location
+				this.showMessage("Cannot play here, there is already a token", "error");
+				return;
+			}
+	
+			this.ajaxcall( `/${this.game_name}/${this.game_name}/placeToken.html`, {
+				x, y, lock: true
+			}, this, function() {} );
+		} else if (this.checkAction('placeWild')) {
+			// Get the clicked square x and y
+			// Note: square id format is "square_X_Y"
+			let [_square_, x, y] = evt.currentTarget.id.split('_');
+			const token = $<HTMLElement>( `token_${x}_${y}` );
+			if (token !== null) { // Check if there is already a token at this square's location
+				this.showMessage("Cannot play here, there is already a token", "error");
+				return;
+			}
+	
+			this.ajaxcall( `/${this.game_name}/${this.game_name}/placeWild.html`, {
+				x, y, lock: true
+			}, this, function() {} );
 		}
-		// Get the clicked square x and y
-		// Note: square id format is "square_X_Y"
+	}
 
-		this.ajaxcall( `/${this.game_name}/${this.game_name}/playToken.html`, {
-			x, y, lock: true
-		}, this, function() {} );
+	onfinishTurn( evt: Event )
+	{
+		// Stop this event propagation
+		evt.preventDefault();
+
+		if (!(evt.currentTarget instanceof HTMLElement))
+			throw new Error('evt.currentTarget is null! Make sure that this function is being connected to a DOM HTMLElement.');
+		// Check that this action is possible at this moment (shows error dialog if not possible)
+		if( this.checkAction('finishTurn') ) {
+			this.ajaxcall( `/${this.game_name}/${this.game_name}/finishTurn.html`, {lock: true}, this, function() {} );
+		}
 	}
 	/*
 		Here, you are defining methods to handle player's action (ex: results of mouse click on game objects).
@@ -193,7 +239,9 @@ class RivalX extends Gamegui
 	override setupNotifications()
 	{
 		console.log( 'notifications subscriptions setup' );
-		
+
+		dojo.subscribe( 'playToken', this, "notif_playToken" );
+		this.notifqueue.setSynchronous( 'playToken', 500 );
 		// TODO: here, associate your game notifications with local methods
 		
 		// With base Gamegui class...
@@ -201,6 +249,11 @@ class RivalX extends Gamegui
 
 		// With GameguiCookbook::Common class...
 		// this.subscribeNotif( 'cardPlayed', this.notif_cardPlayed ); // Adds type safety to the subscription
+	}
+
+	notif_playToken( notif: NotifAs<'playToken'> )
+	{
+		this.addTokenOnBoard( notif.args.x, notif.args.y, notif.args.player_id, notif.args.wild );
 	}
 
 	/*
