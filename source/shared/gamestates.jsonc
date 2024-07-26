@@ -29,13 +29,13 @@
 	// Note: ID=2: your first state
 	"2": {
 		"name": "wildPlacement",
-		"description": "${actplayer} must place all wild tokens on the board",
-		"descriptionmyturn": "${you} must place all wild tokens on the board",
+		"description": "${actplayer} must place ${numWildsLeft} more wild tokens on the board",
+		"descriptionmyturn": "${you} must place ${numWildsLeft} more wild tokens on the board",
 		"type": "activeplayer",
 		"args": "argwildPlacement",
         "argsType": {
             "possibleMoves": "boolean[][]",
-			"numWilds": "number"
+			"numWildsLeft": "number"
         },
 		"possibleactions": {
 			"placeWild": [
@@ -54,7 +54,7 @@
 			],
 			"finishTurn": []
 		},
-		"transitions": { "placeWild": 2, "selectWild": 2, "moveWild": 2, "finishTurn": 10 }
+		"transitions": { "placeWild": 2, "selectWild": 2, "moveWild": 2, "finishTurn": 11 }
 	},
 
 	"10": {

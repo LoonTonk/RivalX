@@ -32,7 +32,8 @@
 
 <script type="text/javascript">
 
-var jstpl_token = '<div class="tokencolor_${color}" id="token_${x_y}"></div>';
+var jstpl_token = '<div class="token tokencolor_${color}" id="token_${x_y}"></div>';
+var jstpl_scoretile = '<div class="scoretile tilecolor_${color}" id="scoretile_${x_y}"></div>';
 // Javascript HTML templates
 
 /*

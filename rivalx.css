@@ -24,20 +24,30 @@
   width: 62px;
   height: 62px;
   position: absolute;
+  background-color: rgb(133, 133, 133);
+  z-index: 0;
 }
 
-.squarecolor_0000FF {
+.scoretile {
+  width: 62px;
+  height: 62px;
+  position: absolute;
+  z-index: 1;
+}
+
+.tilecolor_0000FF {
   background-image: url("img/blue.png");
 }
 
-.squarecolor_FF0000 {
+.tilecolor_FF0000 {
   background-image: url("img/red.png");
 }
 
-.tokencolor_0000FF, .tokencolor_FF0000, .tokencolor_0 {
+.token {
   width: 56px;
   height: 56px;
   position: absolute;
+  z-index: 2;
 }
 
 .tokencolor_0 {
@@ -50,6 +60,35 @@
 
 .tokencolor_FF0000 {
   background-image: url("img/redx.png");
+}
+
+.selectable::before {
+  animation: selectable-token-animation 1s ease-in-out infinite alternate-reverse;
+  background: url("img/glowingx.png") no-repeat;
+  bottom: 0px;
+  content: "";
+  left: 0px;
+  position: absolute;
+  right: 0px;
+  top: -2px;
+}
+
+@keyframes selectable-token-animation {
+  0% {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.possibleMove {
+  background-color: rgba(255, 255, 255, 0.021);
+  cursor: pointer;
+  transition: 100ms;
+}
+
+.possibleMove:hover {
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
 /*

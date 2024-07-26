@@ -33,8 +33,7 @@ class RivalX extends Table
         parent::__construct();
         
         $this->initGameStateLabels( array( 
-            //    "my_first_global_variable" => 10,
-            //    "my_second_global_variable" => 11,
+
             //      ...
             //    "my_first_game_variant" => 100,
             //    "my_second_game_variant" => 101,
@@ -65,12 +64,13 @@ class RivalX extends Table
  
         // Create players
         // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
-        $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar) VALUES ";
+        $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar, player_tokens_left) VALUES ";
         $values = array();
+        $player_token_count = 15;
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
-            $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."')";
+            $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."','".$player_token_count."')";
         }
         $sql .= implode( ',', $values );
         $this->DbQuery( $sql );
@@ -88,7 +88,7 @@ class RivalX extends Table
         //$this->initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
         // TODO: setup the initial game situation here
-        $sql = "INSERT INTO board (board_x,board_y,board_player,board_player_tile) VALUES ";
+        $sql = "INSERT INTO board (board_x,board_y,board_player,board_player_tile,board_selectable) VALUES ";
         $sql_values = array();
         list( $blueplayer_id, $redplayer_id ) = array_keys( $players ); //TODO: remove after testing
         for( $x=1; $x<=8; $x++ )
@@ -96,13 +96,17 @@ class RivalX extends Table
             for( $y=1; $y<=8; $y++ )
             {
                if ($x==1 && $y==1) { //TODO: remove after testing
-                    $sql_values[] = "('$x','$y','$blueplayer_id','$redplayer_id')";
+                    $sql_values[] = "('$x','$y','$blueplayer_id','$redplayer_id','0')";
                 } else {
-                    $sql_values[] = "('$x','$y',-1,-1)";
+                    $sql_values[] = "('$x','$y','-1','-1','0')";
                 }
             }
         }
         $sql .= implode( ',', $sql_values );
+        self::DbQuery( $sql );
+
+        // setup lastPlayed table
+        $sql = "INSERT INTO lastPlayed (lastPlayed_x,lastPlayed_y,lastPlayed_player) VALUES ('0','0','0')";
         self::DbQuery( $sql );
 
         // Activate first player (which is in general a good idea :) )
@@ -132,7 +136,7 @@ class RivalX extends Table
         $result['players'] = $this->getCollectionFromDb( $sql );
   
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
-        $sql = "SELECT board_x x, board_y y, board_player player, board_player_tile player_tile
+        $sql = "SELECT board_x x, board_y y, board_player player, board_player_tile player_tile, board_selectable selectable
         FROM board";
         $result['board'] = self::getObjectListFromDB( $sql );
         return $result;
@@ -160,105 +164,215 @@ class RivalX extends Table
 //////////// Utility functions
 ////////////    
 
-    /*
-        In this space, you can put any utility methods useful for your game logic
-    */
     // Get the complete board with a double associative array
     function getBoard()
     {
-        $sql = "SELECT board_x x, board_y y, board_player player, board_player_tile player_tile FROM board";
+        $sql = "SELECT board_x x, board_y y, board_player player, board_player_tile player_tile, board_selectable selectable FROM board";
         return self::getDoubleKeyCollectionFromDB( $sql );
     }
 
+    // Returns an array of all wilds on board
+    function getWilds() {
+        $sql = "SELECT board_x x, board_y y FROM board WHERE (board_player) IN (0)"; // Find all the spots with token id 0, i.e wild token
+        $result = self::getObjectListFromDB( $sql );
+        return $result;
+    }
+
+    // Returns number of wilds on board
     function getNumWilds() {
-        $sql = "SELECT board_player, COUNT(*) FROM board WHERE (board_player) IN (0)"; // Find the number of spots with token id 0, i.e wild token
-        $result = self::getCollectionFromDb( $sql, true );
-        $this->dump("result", $result);
-        if (isset($result[0])) { // for some reason the code breaks without this even though [0] should always be set?
-            return $result[0];
-        } else {
-            return 0;
+        $array = self::getWilds();
+        $total = 0;
+        foreach ($array as $subArray) {
+            $total += count($subArray);
         }
+        return $total;
     }
 
-    function wildPlacementPossibleMoves() {
-        $board = self::getBoard();
-        $possibleMoves = array();
-        return $possibleMoves;
-    }
+    // Need to notify and sql remove tokens (including token number), add point tiles, update score, make wilds selectable, highlight pattern
+    // TODO: highlight pattern
+    function updateBoardOnPattern($patternTokens, $board) {
 
-        /* for ($x = 1; $x <= 8; $x++) {
-            for ($y = 1; $y <= 8; $y++) {
-                if ($board[$x][$y])
+        // First, separate pattern Tokens into player and non player
+        $playerTokens = array();
+        $wildTokens = array();
+        foreach ($patternTokens as $token) {
+            if ($board[$token['x']][$token['y']]['player'] == 0) { // wild
+                $wildTokens[] = $token;
+            } else {
+                $playerTokens[] = $token;
             }
         }
-        if( $board[ $x ][ $y ] === null ) // If there is already a disc on this place, this can't be a valid move
-        {
-            // For each directions...
-            $directions = array(
-                array( -1,-1 ), array( -1,0 ), array( -1, 1 ), array( 0, -1),
-                array( 0,1 ), array( 1,-1), array( 1,0 ), array( 1, 1 )
-            );
 
-            foreach( $directions as $direction )
-            {
+        // Next, update the board table (remove tokens, add point tiles)
+        $player_id = $board[$playerTokens[0]['x']][$playerTokens[0]['y']]['player'];
+        $sql = "UPDATE board SET board_player = '-1', board_player_tile = '$player_id' WHERE (board_x, board_y) IN (";
+        foreach($playerTokens as $token) {
+            $sql .= "('".$token['x']."','".$token['y']."'),";
+        }
+        $sql = substr($sql, 0, -1) . ")"; // Removes the last character
+        self::DbQuery( $sql );
 
-                    $current_x = $x + $direction[0];
-                    $current_y = $y + $direction[1];
-                    if( $current_x<1 || $current_x>8 || $current_y<1 || $current_y>8 )
-                        continue; // Out of the board => stop here for this direction
+        // Then update score for all players
+        $player_ids =  array_keys($this->loadPlayersBasicInfos());  
+        foreach ($player_ids as $player) {
+            self::DbQuery( "UPDATE player SET player_score = (SELECT COUNT(*) AS player_tiles FROM board WHERE board_player_tile = '$player') WHERE player_id = $player" );
+        }
 
-                    if ($board[ $current_x ][ $current_y ] !== null)
-                        // push the disc to be turned over
-                        $turnedOverDiscs[] = array( 'x' => $current_x, 'y' => $current_y );
+        // update token count for player who made pattern
+        self::DbQuery( "UPDATE player SET player_tokens_left = (SELECT 15 - COUNT(*) AS player FROM board WHERE board_player = '$player_id')" );
+
+        // Make wilds selectable (if any exist)
+        if (count($wildTokens) > 0) {
+            $sql = "UPDATE board SET board_selectable = '1' WHERE (board_x, board_y) IN (";
+            foreach($wildTokens as $token) {
+                $sql .= "('".$token['x']."','".$token['y']."'),";
+            }
+            $sql = substr($sql, 0, -1) . ")"; // Removes the last character
+            self::DbQuery( $sql );
+        }
+
+        // Notify remove tokens
+        self::notifyAllPlayers( "removeTokens", "", $playerTokens);
+
+        // Notify add point tiles
+        $playerTiles = array();
+        foreach ($playerTokens as $token) {
+            $playerTiles[] = array('x' => $token['x'], 'y' => $token['y'], 'player_id' => $player_id);
+        }
+        self::notifyAllPlayers( "addScoreTiles", "", $playerTiles);
+
+        // Notify make tokens selectable
+        self::notifyAllPlayers( "markSelectableTokens", '', $wildTokens);
+
+        // Notify update scores
+        $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
+        self::notifyAllPlayers( "newScores", "", array(
+            "scores" => $newScores
+        ) );
+    }
 
 
-                // Starting from the square we want to place a disc...
-                $current_x = $x;
-                $current_y = $y;
-                $bContinue = true;
-                $mayBeTurnedOver = array();
+    function getPatternTokens($board) {
+        $sql = "SELECT lastPlayed_x x, lastPlayed_y y, lastPlayed_player player FROM lastPlayed"; // Find all the spots with token id 0, i.e wild token
+        $result = self::getObjectFromDB( $sql );
+        $this->dump("getPatternTokens sql response: ", $result);
+        if ($result['x'] !== '0') { // If result[x] is 0 then lastplayed has not been set to a real token position yet
+            return self::getPatternTokensAtxy($result['x'], $result['y'], $result['player'], $board);
+        } else {
+            return array();
+        }
+    }
 
-                while( $bContinue )
-                {
-                    // Go to the next square in this direction
-                    $current_x += $direction[0];
-                    $current_y += $direction[1];
+    function getPatternTokensAtxy(int $x, int $y, $player_id, $board) {
+        $mayBePattern = array();
+        $result = array();
 
-                    if( $current_x<1 || $current_x>8 || $current_y<1 || $current_y>8 )
-                        $bContinue = false; // Out of the board => stop here for this direction
-                    else if( $board[ $current_x ][ $current_y ] === null )
-                        $bContinue = false; // An empty square => stop here for this direction
-                    else if( $board[ $current_x ][ $current_y ] != $player )
-                    {
-                        // There is a disc from our opponent on this square
-                        // => add it to the list of the "may be turned over", and continue on this direction
-                        $mayBeTurnedOver[] = array( 'x' => $current_x, 'y' => $current_y );
-                    }
-                    else if( $board[ $current_x ][ $current_y ] == $player )
-                    {
-                        // This is one of our disc
-
-                        if( count( $mayBeTurnedOver ) == 0 )
-                        {
-                            // There is no disc to be turned over between our 2 discs => stop here for this direction
-                            $bContinue = false;
-                        }
-                        else
-                        {
-                            // We found some disc to be turned over between our 2 discs
-                            // => add them to the result and stop here for this direction
-                            $turnedOverDiscs = array_merge( $turnedOverDiscs, $mayBeTurnedOver );
-                            $bContinue = false;
-                        }
-                    }
+        // Checks for horizontal pattern
+        $row = array( array(-1,0), array(1,0) );
+        foreach ($row as $direction) {
+            $curr_x = $x;
+            $curr_y = $y;
+            $continue = true;
+            while ($continue) {
+                $curr_x += $direction[0];
+                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) &&
+                    $board[$curr_x][$curr_y]['player'] == $player_id || $board[$curr_x][$curr_y]['player'] == 0) { // Spot is either token of player or wild
+                    $mayBePattern[] = array('x' => $curr_x, 'y' => $curr_y);
+                } else { // spot is not pattern token
+                    $continue = false;
                 }
             }
         }
+        if (count($mayBePattern) >= 4) { // 4 because we are not counting the token we started on
+            $result = array_merge( $result, $mayBePattern );
+        }
+        $mayBePattern = []; // Clears mayBePattern
 
-        return $turnedOverDiscs;
-    } */
+        // Checks for vertical pattern
+        $col = array( array(0,-1), array(0,1) );
+        foreach ($col as $direction) {
+            $curr_x = $x;
+            $curr_y = $y;
+            $continue = true;
+            while ($continue) {
+                $curr_y += $direction[1];
+                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) &&
+                    ($board[$curr_x][$curr_y]['player'] == $player_id || $board[$curr_x][$curr_y]['player'] == 0)) { // Spot is either token of player or wild
+                    $mayBePattern[] = array('x' => $curr_x, 'y' => $curr_y);
+                } else { // spot is not pattern token
+                    $continue = false;
+                }
+            }
+        }
+        if (count($mayBePattern) >= 4) { // 4 because we are not counting the token we started on
+            $result = array_merge( $result, $mayBePattern );
+        }
+        $mayBePattern = []; // Clears mayBePattern
 
+/*         $directions = array(
+            array( -1,-1 ), array( -1,0 ), array( -1, 1 ), array( 0, -1),array( 0, 0),
+            array( 0,1 ), array( 1,-1), array( 1,0 ), array( 1, 1 )
+        ); */
+        if (count($result) > 0) {
+            $result[] = array('x' => $x, 'y' => $y);
+        }
+        return $result;
+    }
+    // Returns a list of all possible player moves in current state (does not count moving wilds)
+    function getPossibleMoves($state) {
+        $board = self::getBoard();
+        $result = array();
+        switch ($state) {
+            case 'wildPlacement':
+                $directions = array(
+                    array( -1,-1 ), array( -1,0 ), array( -1, 1 ), array( 0, -1),array( 0, 0),
+                    array( 0,1 ), array( 1,-1), array( 1,0 ), array( 1, 1 )
+                );
+                for ($x = 1; $x <= 8; $x++) {
+                    for ($y = 1; $y <= 8; $y++) {
+                        $valid_spot = true;
+                        foreach( $directions as $direction ) {
+                            $current_x = $x + $direction[0];
+                            $current_y = $y + $direction[1];
+                            if( $current_x<1 || $current_x>8 || $current_y<1 || $current_y>8 )
+                                continue; // Out of the board => stop here for this direction
+                            else if ($board[$current_x][$current_y]['player'] == 0) { // This spot is a wild
+                                $valid_spot = false;
+                            }
+                        }
+                        if ($valid_spot) {
+                            if( ! isset( $result[$x] ) ) {
+                                $result[$x] = array();
+                            }
+                            $result[$x][$y] = true;
+                        }
+                    }
+                }
+                return $result;
+            case 'playerTurn':
+                for ($x = 1; $x <= 8; $x++) {
+                    for ($y = 1; $y <= 8; $y++) {
+                        if ($board[$x][$y]['player'] == -1) { //player is empty
+                            // Okay => set this coordinate to "true"
+                            if( ! isset( $result[$x] ) ) {
+                                $result[$x] = array();
+                            }
+                            $result[$x][$y] = true;
+                        }
+                    }
+                }
+                return $result;
+            case 'changePattern': //TODO
+                return $result;
+            default:
+                throw new Error("get possible moves called with an invalid arg");
+        }
+    }
+
+    // TODO: returns true if all players have tokens, false if any player has run out of tokens
+    function allPlayersHaveTokens() {
+        return true;
+    }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
@@ -273,24 +387,26 @@ class RivalX extends Table
     {
         // Check that this player is active and that this action is possible at this moment
         self::checkAction( 'placeToken' );
-        $board = self::getBoard();
         $player_id = self::getActivePlayerId();
-        // Let's place a token at x,y and return all "$returned" discs to the active player
-        // $other_id = self::getUniqueValueFromDb( "SELECT player_id FROM player WHERE player_id!='$player_id'" ); // TODO: fix for > 2 players
-        // something something something if it's bombs every disc in turnedoverDiscs gets flipped to the next player's disc
+        // Adds token to board
         $sql = "UPDATE board SET board_player = '$player_id' WHERE (board_x, board_y) IN (('$x','$y'))";
-
         self::DbQuery( $sql );
-
+        // Lowers player's remaining token count
+        $sql = "UPDATE player SET player_tokens_left = player_tokens_left - 1 WHERE (player_id) IN ('$player_id')";
+        self::DbQuery( $sql );
+        // Puts token in lastPlayed
+        $sql = "UPDATE lastPlayed SET lastPlayed_x = $x, lastPlayed_y = $y, lastPlayed_player = $player_id ";
+        self::DbQuery( $sql );
         // Notify
-/*         self::notifyAllPlayers( "playDisc", clienttranslate( '${player_name} plays a disc and turns over ${returned_nbr} disc(s)' ), array(
+        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} plays a token' ), array(
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),
-            'returned_nbr' => count( $turnedOverDiscs ),
+            'wild' => false,
+            'selectable' => 0,
             'x' => $x,
             'y' => $y
         ) );
-            
+            /*
         self::notifyAllPlayers( "turnOverDiscs", '', array(
             'player_id' => $player_id,
             'prevDiscState' => $prevDiscState,
@@ -318,9 +434,11 @@ class RivalX extends Table
 
     function finishTurn() {
         self::checkAction('finishTurn');
+        self::DbQuery("UPDATE board SET board_selectable = 0 WHERE board_selectable IN (('1'))");
         $this->gamestate->nextState( 'finishTurn' );
     }
 
+    // Selects a wild to reposition TODO
     function selectWild($x, $y) {
         return;
     }
@@ -329,20 +447,25 @@ class RivalX extends Table
         self::checkAction( 'placeWild' );
 
         $board = self::getBoard();
-        $sql = "UPDATE board SET board_player = 0 WHERE (board_x, board_y) IN (('$x','$y'))";
+        $sql = "UPDATE board SET board_player = 0, board_selectable = 1 WHERE (board_x, board_y) IN (('$x','$y'))";
         self::DbQuery( $sql );
-        $numWilds = self::getNumWilds();
-        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a wild token, ${numWilds}/5 placed' ), array(
+        $numWilds = count(self::getWilds());
+        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a wild token, ${numWildsLeft} wilds left to place' ), array(
             'player_id' => self::getActivePlayerId(),
             'player_name' => self::getActivePlayerName(),
-            'numWilds' => $numWilds,
+            'numWildsLeft' => 5-$numWilds,
+            'selectable' => 1,
             'x' => $x,
             'y' => $y,
             'wild' => true
         ) );
+
+        // Mark selectable tokens
+        self::notifyAllPlayers( "markSelectableTokens", '', self::getWilds());
         $this->gamestate->nextState( 'placeWild' );
     }
 
+    // Moves the selected wild from one position to another
     function moveWild($old_x, $old_y, $new_x, $new_y) {
         self::checkAction('moveWild');
 
@@ -386,13 +509,17 @@ class RivalX extends Table
 
     function argwildPlacement() {
         return array(
-            'possibleMoves' => self::wildPlacementPossibleMoves(),
-            'numWilds' => self::getNumWilds()
+            'possibleMoves' => self::getPossibleMoves('wildPlacement'),
+            'numWildsLeft' => 5-count(self::getWilds())
         );
     }
 
     function argPlayerTurn() {
-        return array( 'possibleMoves' => self::wildPlacementPossibleMoves()); //TODO: change
+        return array( 'possibleMoves' => self::getPossibleMoves('playerTurn'));
+    }
+
+    function argChangePattern() {
+        return array( 'possibleMoves' => self::getPossibleMoves('changePattern'));
     }
     /*
     
@@ -420,9 +547,20 @@ class RivalX extends Table
         The action method of state X is called everytime the current game state is set to X.
     */
     
-    function stNextPlayer() {
-        $player_id = self::activeNextPlayer(); //TODO: add a LOT of checks
-        return;
+    function stNextPlayer() { //TODO: add a LOT of checks
+        $board = self::getBoard();
+        $patternTokens = self::getPatternTokens($board);
+        if (count($patternTokens) > 0) { // A pattern has been made!
+            $this->dump("pattern Tokens ", $patternTokens);
+            self::updateBoardOnPattern($patternTokens, $board); // Need to notify and sql remove tokens (including token number), add point tiles, update score, make wilds selectable, highlight pattern
+           $this->gamestate->nextState('changePattern');
+        }
+        else if (!self::allPlayersHaveTokens()) {
+            $this->gamestate->nextState('endGame');
+        } else {
+            self::activeNextPlayer();
+            $this->gamestate->nextState( 'nextTurn' );
+        }
     }
     /*
     

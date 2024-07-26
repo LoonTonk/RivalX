@@ -13,13 +13,17 @@ declare global {
 
 	/** @gameSpecific Add game specific notifications / arguments here. See {@link NotifTypes} for more information. */
 	interface NotifTypes {
-		'playToken': { x: number, y: number, player_id: number, wild: boolean };
+		'playToken': { x: number, y: number, player_id: number, wild: boolean, selectable: number }; // NOTE: most of these are calling for numbers, but SQL queries return strings so these are actually strings, not numbers
+		'markSelectableTokens': { x: number, y: number }[];
+		'newScores': { scores: Record<number, number> };
+		'removeTokens': { x: number, y: number}[];
+		'addScoreTiles': { x: number, y: number, player_id: number}[];
 		// [name: string]: any; // Uncomment to remove type safety on notification names and arguments
 	}
 
 	/** @gameSpecific Add game specific gamedatas arguments here. See {@link Gamedatas} for more information. */
 	interface Gamedatas {
-		board: {x: number, y: number, player: number, player_tile: number}[];
+		board: {x: number, y: number, player: number, player_tile: number, selectable: number}[];
 		// [key: string | number]: Record<keyof any, any>; // Uncomment to remove type safety on game state arguments
 	}
 

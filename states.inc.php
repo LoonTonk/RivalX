@@ -33,8 +33,8 @@ $machinestates = array(
 	),
 	2 => array(
 		'name' => 'wildPlacement',
-		'description' => clienttranslate('${actplayer} must place all wild tokens on the board'),
-		'descriptionmyturn' => clienttranslate('${you} must place all wild tokens on the board'),
+		'description' => clienttranslate('${actplayer} must place ${numWildsLeft} more wild tokens on the board'),
+		'descriptionmyturn' => clienttranslate('${you} must place ${numWildsLeft} more wild tokens on the board'),
 		'type' => 'activeplayer',
 		'args' => 'argwildPlacement',
 		'possibleactions' => ['placeWild', 'selectWild', 'moveWild', 'finishTurn'],

@@ -27,21 +27,58 @@
     // Position relative to the board, not affected by other elements.
     position: absolute;
     // Placeholder for validating the positions.
+	background-color: rgb(133, 133, 133);
+	z-index: 0;
 }
 
-.squarecolor_0000FF { background-image: url("img/blue.png"); }
-.squarecolor_FF0000 { background-image: url("img/red.png"); }
+.scoretile {  
+	width: 62px;
+    height: 62px;
+	position: absolute;
+	z-index: 1; 
+}
 
-.tokencolor_0000FF, .tokencolor_FF0000, .tokencolor_0 {width: 56px; height: 56px;
-	position: absolute; } //TODO: add more colors
+.tilecolor_0000FF { background-image: url("img/blue.png"); }
+.tilecolor_FF0000 { background-image: url("img/red.png"); }
+
+.token {width: 56px; height: 56px; position: absolute; z-index: 2 } //TODO: add more colors
 
 	//TODO: Change these to be from the same image and look nicer
 .tokencolor_0 { background-image: url('img/wildx.png'); } // Wild token
 .tokencolor_0000FF { background-image: url('img/bluex.png'); } // Blue token
 .tokencolor_FF0000 { background-image: url('img/redx.png'); } // Red token
 
+.selectable::before {
+	animation: selectable-token-animation 1s ease-in-out infinite alternate-reverse;
+	background: url('img/glowingx.png') no-repeat;
+	bottom: 0px;
+	content: "";
+	left: 0px;
+	position: absolute;
+	right: 0px;
+	top: -2px;
+}
+@keyframes selectable-token-animation {
+	0% {
+		opacity: .5
+	}
+
+	to {
+		opacity: 1
+	}
+}
+.selected {}
 
 
+.possibleMove {
+    background-color: rgba(255, 255, 255, 0.021);
+    cursor: pointer;
+    transition: 100ms;
+}
+
+.possibleMove:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
 /*
 	This is the CSS stylesheet of your game User Interface.
 	
