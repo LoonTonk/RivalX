@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS `lastPlayed` (
     `lastPlayed_x` smallint(5) unsigned NOT NULL,
     `lastPlayed_y` smallint(5) unsigned NOT NULL,
     `lastPlayed_player` int(10) unsigned NOT NULL,
+    `selected_x` smallint(5) unsigned NOT NULL,
+    `selected_y` smallint(5) unsigned NOT NULL,
     PRIMARY KEY (`lastPlayed_x`,`lastPlayed_y`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

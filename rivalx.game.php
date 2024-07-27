@@ -95,18 +95,14 @@ class RivalX extends Table
         {
             for( $y=1; $y<=8; $y++ )
             {
-               if ($x==1 && $y==1) { //TODO: remove after testing
-                    $sql_values[] = "('$x','$y','$blueplayer_id','$redplayer_id','0')";
-                } else {
-                    $sql_values[] = "('$x','$y','-1','-1','0')";
-                }
+                $sql_values[] = "('$x','$y','-1','-1','0')";
             }
         }
         $sql .= implode( ',', $sql_values );
         self::DbQuery( $sql );
 
         // setup lastPlayed table
-        $sql = "INSERT INTO lastPlayed (lastPlayed_x,lastPlayed_y,lastPlayed_player) VALUES ('0','0','0')";
+        $sql = "INSERT INTO lastPlayed (lastPlayed_x,lastPlayed_y,lastPlayed_player, selected_x, selected_y) VALUES ('0','0','0','0','0')";
         self::DbQuery( $sql );
 
         // Activate first player (which is in general a good idea :) )
@@ -139,6 +135,8 @@ class RivalX extends Table
         $sql = "SELECT board_x x, board_y y, board_player player, board_player_tile player_tile, board_selectable selectable
         FROM board";
         $result['board'] = self::getObjectListFromDB( $sql );
+        $result['selected'] = self::getObjectFromDB( "SELECT selected_x x, selected_y y FROM lastPlayed" );
+        $result['lastPlayed'] = self::getObjectFromDB( "SELECT lastPlayed_x x, lastPlayed_y y, lastPlayed_player player FROM lastPlayed" );
         return $result;
     }
 
@@ -271,7 +269,7 @@ class RivalX extends Table
 
 
     function getPatternTokens($board) {
-        $sql = "SELECT lastPlayed_x x, lastPlayed_y y, lastPlayed_player player FROM lastPlayed"; // Find all the spots with token id 0, i.e wild token
+        $sql = "SELECT lastPlayed_x x, lastPlayed_y y, lastPlayed_player player FROM lastPlayed"; 
         $result = self::getObjectFromDB( $sql );
         $this->dump("getPatternTokens sql response: ", $result);
         if ($result['x'] !== '0') { // If result[x] is 0 then lastplayed has not been set to a real token position yet
@@ -293,6 +291,7 @@ class RivalX extends Table
             $continue = true;
             while ($continue) {
                 $curr_x += $direction[0];
+                $curr_y += $direction[1];
                 if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) &&
                     ($board[$curr_x][$curr_y]['player'] == $player_id || $board[$curr_x][$curr_y]['player'] == 0)) { // Spot is either token of player or wild
                     $mayBePattern[] = array('x' => $curr_x, 'y' => $curr_y);
@@ -313,6 +312,51 @@ class RivalX extends Table
             $curr_y = $y;
             $continue = true;
             while ($continue) {
+                $curr_x += $direction[0];
+                $curr_y += $direction[1];
+                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) &&
+                    ($board[$curr_x][$curr_y]['player'] == $player_id || $board[$curr_x][$curr_y]['player'] == 0)) { // Spot is either token of player or wild
+                    $mayBePattern[] = array('x' => $curr_x, 'y' => $curr_y);
+                } else { // spot is not pattern token
+                    $continue = false;
+                }
+            }
+        }
+        if (count($mayBePattern) >= 4) { // 4 because we are not counting the token we started on
+            $result = array_merge( $result, $mayBePattern );
+        }
+        array_splice($mayBePattern, 0); // Clears mayBePattern
+
+        // Checks for topleft->bottomright diagonal pattern
+        $col = array( array(1,1), array(-1,-1) );
+        foreach ($col as $direction) {
+            $curr_x = $x;
+            $curr_y = $y;
+            $continue = true;
+            while ($continue) {
+                $curr_x += $direction[0];
+                $curr_y += $direction[1];
+                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) &&
+                    ($board[$curr_x][$curr_y]['player'] == $player_id || $board[$curr_x][$curr_y]['player'] == 0)) { // Spot is either token of player or wild
+                    $mayBePattern[] = array('x' => $curr_x, 'y' => $curr_y);
+                } else { // spot is not pattern token
+                    $continue = false;
+                }
+            }
+        }
+        if (count($mayBePattern) >= 4) { // 4 because we are not counting the token we started on
+            $result = array_merge( $result, $mayBePattern );
+        }
+        array_splice($mayBePattern, 0); // Clears mayBePattern
+
+        // Checks for topright->bottomleft diagonal pattern
+        $col = array( array(-1,1), array(1,-1) );
+        foreach ($col as $direction) {
+            $curr_x = $x;
+            $curr_y = $y;
+            $continue = true;
+            while ($continue) {
+                $curr_x += $direction[0];
                 $curr_y += $direction[1];
                 if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) &&
                     ($board[$curr_x][$curr_y]['player'] == $player_id || $board[$curr_x][$curr_y]['player'] == 0)) { // Spot is either token of player or wild
@@ -368,9 +412,6 @@ class RivalX extends Table
             array_splice($mayBePattern, 0); // Clears mayBePattern
         }
 
-
-
-
         if (count($result) > 0) {
             $result[] = array('x' => $x, 'y' => $y);
             // Serialize each sub-array
@@ -385,9 +426,146 @@ class RivalX extends Table
         }
         return $result;
     }
+
+    // Returns true if putting a wild token at this x,y creates a wild pattern
+    function WildPatternExists(int $x, int $y, $board) {
+        $inPattern = 1;
+
+        // Checks for horizontal pattern
+        $row = array( array(-1,0), array(1,0) );
+        foreach ($row as $direction) {
+            $curr_x = $x;
+            $curr_y = $y;
+            $continue = true;
+            while ($continue) {
+                $curr_x += $direction[0];
+                $curr_y += $direction[1];
+                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) && ($board[$curr_x][$curr_y]['player'] == 0)) { // Spot is wild token
+                    $inPattern++;
+                } else { // spot is not pattern token
+                    $continue = false;
+                }
+            }
+        }
+        if ($inPattern >= 5) {
+            return true;
+        }
+        $inPattern = 1;
+
+        // Checks for vertical pattern
+        $col = array( array(0,-1), array(0,1) );
+        foreach ($col as $direction) {
+            $curr_x = $x;
+            $curr_y = $y;
+            $continue = true;
+            while ($continue) {
+                $curr_x += $direction[0];
+                $curr_y += $direction[1];
+                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) && ($board[$curr_x][$curr_y]['player'] == 0)) { // Spot is wild token
+                    $inPattern++;
+                } else { // spot is not pattern token
+                    $continue = false;
+                }
+            }
+        }
+        if ($inPattern >= 5) {
+            return true;
+        }
+        $inPattern = 1;
+
+        // Checks for diagonal pattern topleft->bottomright
+        $col = array( array(1,1), array(-1,-1) );
+        foreach ($col as $direction) {
+            $curr_x = $x;
+            $curr_y = $y;
+            $continue = true;
+            while ($continue) {
+                $curr_x += $direction[0];
+                $curr_y += $direction[1];
+                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) && ($board[$curr_x][$curr_y]['player'] == 0)) { // Spot is wild token
+                    $inPattern++;
+                } else { // spot is not pattern token
+                    $continue = false;
+                }
+            }
+        }
+        if ($inPattern >= 5) {
+            return true;
+        }
+        $inPattern = 1;
+
+        // Checks for diagonal pattern topright->bottomleft
+        $col = array( array(1,-1), array(-1,1) );
+        foreach ($col as $direction) {
+            $curr_x = $x;
+            $curr_y = $y;
+            $continue = true;
+            while ($continue) {
+                $curr_x += $direction[0];
+                $curr_y += $direction[1];
+                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) && ($board[$curr_x][$curr_y]['player'] == 0)) { // Spot is wild token
+                    $inPattern++;
+                } else { // spot is not pattern token
+                    $continue = false;
+                }
+            }
+        }
+        if ($inPattern >= 5) {
+            return true;
+        }
+        $inPattern = 1;
+
+        $wPlus = array(array(1,-1), array(1,0), array(1,1), array(2,0));
+        $nPlus = array(array(0,1), array(-1,1), array(1,1), array(0,2));
+        $ePlus = array(array(-1,-1), array(-1,0), array(-1,1), array(-2,0));
+        $sPlus = array(array(0,-1), array(-1,-1), array(1,-1), array(0,-2));
+        $cPlus = array(array(1,0), array(-1,0), array(0,1), array(0,-1));
+        $nwX = array(array(2,0), array(0,2), array(2,2), array(1,1));
+        $neX = array(array(-2,0), array(0,2), array(-2,2), array(-1,1));
+        $seX = array(array(-2,0), array(0,-2), array(-2,-2), array(-1,-1));
+        $swX = array(array(2,0), array(0,-2), array(2,-2), array(1,-1));
+        $cX = array(array(1,1), array(1,-1), array(-1,1), array(-1,-1));
+        // Merge all arrays into one giant nested array
+        $patternArrays = array(
+            'wPlus' => $wPlus,
+            'nPlus' => $nPlus,
+            'ePlus' => $ePlus,
+            'sPlus' => $sPlus,
+            'cPlus' => $cPlus,
+            'nwX' => $nwX,
+            'neX' => $neX,
+            'seX' => $seX,
+            'swX' => $swX,
+            'cX' => $cX
+        );
+        foreach ($patternArrays as $patternArray) {
+            foreach ($patternArray as $pattern) {
+                $curr_x = $x + $pattern[0];
+                $curr_y = $y + $pattern[1];
+                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) && ($board[$curr_x][$curr_y]['player'] == 0)) { // Spot is wild token
+                    $inPattern++;
+                } else { // spot is not pattern token
+                    $inPattern = 1; // Clears inPattern
+                    break;
+                }
+            }
+            if ($inPattern >= 5) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Returns a list of all possible player moves in current state (does not count moving wilds)
     function getPossibleMoves($state) {
         $board = self::getBoard();
+        // If there is a selected token, it should be treated as empty for getting possible moves
+        $sql = "SELECT selected_x x, selected_y y FROM lastPlayed"; 
+        $selectedToken = self::getObjectFromDB( $sql );
+        if ($selectedToken['x'] != 0) {
+            $board[$selectedToken['x']][$selectedToken['y']]['player'] == -1;
+
+        }
         $result = array();
         switch ($state) {
             case 'wildPlacement':
@@ -415,6 +593,9 @@ class RivalX extends Table
                         }
                     }
                 }
+                if ($selectedToken['x'] != 0) {
+                    unset($result[$selectedToken['x']][$selectedToken['y']]);
+                }
                 return $result;
             case 'playerTurn':
                 for ($x = 1; $x <= 8; $x++) {
@@ -429,7 +610,36 @@ class RivalX extends Table
                     }
                 }
                 return $result;
-            case 'changePattern': //TODO
+            case 'changePattern':
+                $player_ids =  array_keys($this->loadPlayersBasicInfos());  
+                for ($x = 1; $x <= 8; $x++) {
+                    for ($y = 1; $y <= 8; $y++) {
+                        if (self::wildPatternExists($x,$y,$board)) {
+                            if( ! isset( $result[$x] ) ) {
+                                $result[$x] = array();
+                            }
+                            $result[$x][$y] = true;
+                            continue;
+                        } else {
+                            $validMove = true;
+                            foreach ($player_ids as $player) {
+                                if (count(self::getPatternTokensatxy($x, $y, $player, $board)) > 0) { // A pattern exists, move is not possible
+                                    $validMove = false;
+                                    break;
+                                }
+                            }
+                            if ($validMove) {
+                                if( ! isset( $result[$x] ) ) {
+                                    $result[$x] = array();
+                                }
+                                $result[$x][$y] = true;
+                            }
+                        }
+                    }
+                }
+                if ($selectedToken['x'] != 0) {
+                    unset($result[$selectedToken['x']][$selectedToken['y']]);
+                }
                 return $result;
             default:
                 throw new Error("get possible moves called with an invalid arg");
@@ -538,8 +748,21 @@ class RivalX extends Table
         $this->dump("old x val", $old_x);
         $this->dump("old y val", $old_y);
         self:: DbQuery( "UPDATE board SET board_player = 0, board_selectable = 1 WHERE (board_x, board_y) IN (('$new_x','$new_y'))"); // add new wild location
+        self:: DbQuery( "UPDATE lastPlayed SET selected_x = 0, selected_y = 0"); // set selected wild position to 0,0
         self::notifyAllPlayers( "moveWild", '', array('old_x' => $old_x, 'old_y' => $old_y, 'new_x' => $new_x, 'new_y' => $new_y));
+        if (self::wildPatternExists($new_x, $new_y, self::getBoard())) { // A player has achieved a pattern of 5 wilds
+            $curr_player = $this->getActivePlayerId();
+            self:: DbQuery( "UPDATE player SET player_score = 99 WHERE (player_id) IN ('$curr_player')"); // Give player ridiculous # of points TODO: better implementation method??
+            $this->gamestate->nextState('wildPattern');
+            return;
+        }
         $this->gamestate->nextState( 'moveWild' );
+    }
+
+    function selectWild($x, $y) {
+        self:: DbQuery( "UPDATE lastPlayed SET selected_x = $x, selected_y = $y"); // update the selected wild in table
+        self::notifyAllPlayers( "selectWild", '', array('x' => $x, 'y' => $y));
+        $this->gamestate->nextState( 'selectWild' );
     }
     /*
     
@@ -624,7 +847,7 @@ class RivalX extends Table
         if (count($patternTokens) > 0) { // A pattern has been made!
             $this->dump("pattern Tokens ", $patternTokens);
             self::updateBoardOnPattern($patternTokens, $board);
-            if (self::checkForWin()) {
+            if (self::checkForWin()) { // Check if any playe has hit the required number of points
                 $this->gamestate->nextState('endGame'); 
             } else {
                 $this->gamestate->nextState('changePattern');

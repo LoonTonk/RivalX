@@ -39,9 +39,9 @@ class RivalX extends Gamegui
 					this.addTileOnBoard(square.x, square.y, square.player_tile);
 				}
 			}
-	
+		console.log("updateSelectedToken passed in values: " + gamedatas.selected['x'] + gamedatas.selected['y']);
+		this.updateSelectedToken(gamedatas.selected['x'], gamedatas.selected['y']);
 		dojo.query( '.square' ).connect( 'onclick', this, 'onplaceToken' );
-		dojo.query('.token').connect('onclick', this, 'onselectToken');
 		
 		// Setup game notifications to handle (see "setupNotifications" method below)
 		this.setupNotifications(); // <-- Keep this line
@@ -62,16 +62,14 @@ class RivalX extends Gamegui
 		switch( stateName )
 		{
 		case 'wildPlacement':
-			if (document.querySelectorAll('.tokencolor_0').length < 5) {
-				this.updatePossibleMoves( args.args!.possibleMoves );
-			} else {
-				this.clearPossibleMoves();
-			}
+			this.updatePossibleMoves( args.args!.possibleMoves ); //TODO: maybe different behavior if 5 wilds have already been placed?
 			break;
 		case 'playerTurn':
 			this.clearSelectable();
 			this.updatePossibleMoves( args.args!.possibleMoves );
 			break;
+		case 'changePattern':
+			this.updatePossibleMoves( args.args!.possibleMoves );
 		} 
 	}
 
@@ -80,7 +78,7 @@ class RivalX extends Gamegui
 	{
 		console.log( 'Leaving state: '+stateName );
 		
-/*  		switch( stateName )
+/*   		switch( stateName )
 		{
 		case 'wildPlacement':
 			this.clearSelectable();
@@ -88,7 +86,7 @@ class RivalX extends Gamegui
 		case 'changePattern':
 			this.clearSelectable();
 			break;
-		}  */
+		}   */
 	}
 
 	/** @gameSpecific See {@link Gamegui.onUpdateActionButtons} for more information. */
@@ -123,7 +121,6 @@ class RivalX extends Gamegui
 		document.querySelectorAll('.selectable').forEach(element => {
 			element.classList.remove('selectable');
 		});
-		this.clearSelectedToken();
 	}
 
 	/** Removes the 'possibleMove' class from all elements. */
@@ -131,6 +128,17 @@ class RivalX extends Gamegui
 		document.querySelectorAll('.possibleMove').forEach(element => {
 			element.classList.remove('possibleMove');
 		});
+	}
+
+	updateSelectedToken( x: number, y: number) {
+		this.clearSelectedToken();
+		if (x != 0) {
+			const token = $<HTMLElement>( `token_${x}_${y}` );
+			if (token === null) {
+				throw new Error("token was null when trying to update selected token");
+			}
+			token.classList.add('selected');
+		}
 	}
 
 	/** Updates the squares on the board matching the possible moves. */
@@ -211,67 +219,49 @@ class RivalX extends Gamegui
 		if (!(evt.currentTarget instanceof HTMLElement))
 			throw new Error('evt.currentTarget is null! Make sure that this function is being connected to a DOM HTMLElement.');
 
+		let [_square_, x, y] = evt.currentTarget.id.split('_');
+		const token = $<HTMLElement>( `token_${x}_${y}` );
+		if (token !== null) { // Check if there is already a token at this square's location
+			this.onselectToken(evt); // If so, the token has also been clicked already
+			return;
+		}
+
 		// Check that this action is possible at this moment (shows error dialog if not possible)
 		if( this.checkAction( 'placeToken', true ) ) {
-			// Get the clicked square x and y
-			// Note: square id format is "square_X_Y"
-			let [_square_, x, y] = evt.currentTarget.id.split('_');
-			const token = $<HTMLElement>( `token_${x}_${y}` );
-			if (token !== null) { // Check if there is already a token at this square's location
-				this.showMessage("Cannot place here, there is already a token", "error");
-				return;
-			}
 			this.ajaxcall( `/${this.game_name}/${this.game_name}/placeToken.html`, {
 				x, y, lock: true
 			}, this, function() {} );
-
 		} else if (this.checkAction('moveWild')) {
-			// Get the clicked square x and y
-			// Note: square id format is "square_X_Y"
-			let [_square_, x, y] = evt.currentTarget.id.split('_');
-			const token = $<HTMLElement>( `token_${x}_${y}` );
 			const square = $<HTMLElement>( `square_${x}_${y}` );
 			if (square === null) {
 				throw new Error('square is null! Make sure that this function is being connected to a DOM HTMLElement.');
 			}
-
-			if (token !== null) { // There is already a token at this square's location
-				if (token.classList.contains('selectable')) {
-					if (token.classList.contains('selected')) {
-						token.classList.remove('selected');
-					} else {
-						this.clearSelectedToken();
-						// Add selected tag to current token
-						token.classList.add('selected');
-					}
-				} else {
-					if (this.checkAction('placeWild', true)) {
-						this.showMessage("Cannot place here, there is already a token", "error");
-					} else {
-						this.showMessage("This token is not selectable, only wilds used in the pattern are movable", "error");
-					}
-					return;
-				}
-			} else { // if (square.classList.contains('possibleMove')) 
-				const selected = document.querySelector('.selected');
-				if (selected !== null) { // There is a selected token
-					console.log("Moving token");
+			const selected = document.querySelector('.selected');
+			if (selected !== null) { // There is a selected token
+				if (square.classList.contains('possibleMove')) {
 					let [_square_, old_x, old_y] = selected.id.split('_');
 					this.ajaxcall( `/${this.game_name}/${this.game_name}/moveWild.html`, {
 						old_x: old_x, old_y: old_y, new_x: x, new_y: y, lock: true
-					}, this, function() {} );		// needs to be old x, old y, new x, new y
-				} else { // there is not a selected
-					if (this.checkAction('placeWild', true)) {
-						if (document.querySelectorAll('.tokencolor_0').length < 5) { // There are less than 5 wilds
+					}, this, function() {} );
+				} else {
+					this.showMessage("Cannot place a wild here, when initially placing wilds they cannot be adjacent to other wilds," +
+							"when moving wilds after completing a pattern they cannot complete another pattern unless it is a pattern of 5 wilds", "error");
+				}
+			} else { // there is not a selected
+				if (this.checkAction('placeWild', true)) {
+					if (document.querySelectorAll('.tokencolor_0').length < 5) { // There are less than 5 wilds
+						if (square.classList.contains('possibleMove')) {
 							this.ajaxcall( `/${this.game_name}/${this.game_name}/placeWild.html`, {
 								x, y, lock: true
 							}, this, function() {} );
 						} else {
-							this.showMessage("Cannot place any more wilds, either select and move wilds or finish turn", "error");
+							this.showMessage("Cannot place a wild here, when initially placing wilds they cannot be adjacent to other wilds", "error");
 						}
 					} else {
-						this.showMessage("You must first select a wild to move it", "error");
+						this.showMessage("Cannot place any more wilds, either select and move wilds or finish turn", "error");
 					}
+				} else {
+					this.showMessage("You must first select a wild to move it", "error");
 				}
 			}
 		}
@@ -298,14 +288,16 @@ class RivalX extends Gamegui
 			}
 			if (token.classList.contains('selectable')) {
 				if (token.classList.contains('selected')) {
-					token.classList.remove('selected');
+					this.ajaxcall( `/${this.game_name}/${this.game_name}/selectWild.html`, { //unselect wild
+						x: 0, y: 0, lock: true
+					}, this, function() {} );
 				} else {
-					this.clearSelectedToken();
-					// Add selected tag to current token
-					token.classList.add('selected');
+					this.ajaxcall( `/${this.game_name}/${this.game_name}/selectWild.html`, {
+						x: x, y: y, lock: true
+					}, this, function() {} );
 				}
 			} else {
-				this.showMessage("This token is not selectable", "error");
+				this.showMessage("This token is not selectable, only wilds used in the pattern are movable", "error");
 			}
 		}
 	}
@@ -384,6 +376,7 @@ class RivalX extends Gamegui
 		this.notifqueue.setSynchronous( 'addScoreTiles', 300 );
 		dojo.subscribe( 'moveWild', this, "notif_moveWild" );
 		this.notifqueue.setSynchronous( 'moveWild', 300 );
+		dojo.subscribe( 'selectWild', this, "notif_selectWild" );
 		// TODO: here, associate your game notifications with local methods
 		
 		// With base Gamegui class...
@@ -453,9 +446,12 @@ class RivalX extends Gamegui
 			throw new Error("When moving a wild somehow a token reference became null");
 		}
 		token.id = `token_${notif.args.new_x}_${notif.args.new_y}`;
-		document.querySelectorAll('.selected').forEach(element => {
-			element.classList.remove('selected');
-		});
+		this.updateSelectedToken(0,0);
+	}
+
+	notif_selectWild( notif: NotifAs<'selectWild'> )
+	{
+		this.updateSelectedToken(notif.args.x, notif.args.y);
 	}
 
 	/*

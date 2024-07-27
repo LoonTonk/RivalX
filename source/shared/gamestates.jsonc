@@ -42,6 +42,10 @@
 				{ "name": "x", "type": "AT_int" },
 				{ "name": "y", "type": "AT_int" }
 			],
+			"selectWild": [
+                { "name": "x", "type": "AT_int" },
+                { "name": "y", "type": "AT_int" }
+			],
 			"moveWild":  [
 				{ "name": "old_x", "type": "AT_int" },
 				{ "name": "old_y", "type": "AT_int" },
@@ -101,9 +105,13 @@
 				{ "name": "new_x", "type": "AT_int" },
 				{ "name": "new_y", "type": "AT_int" }
 			],
+			"selectWild": [
+                { "name": "x", "type": "AT_int" },
+                { "name": "y", "type": "AT_int" }
+			],
 			"finishTurn": []
 		},
-		"transitions": { "moveWild": 20, "finishTurn": 11, "wildPattern": 99 }
+		"transitions": { "selectWild": 20, "moveWild": 20, "finishTurn": 11, "wildPattern": 99 }
     },
 
 /*

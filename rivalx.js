@@ -35,14 +35,9 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                     this.addTileOnBoard(square.x, square.y, square.player_tile);
                 }
             }
+            console.log("updateSelectedToken passed in values: " + gamedatas.selected['x'] + gamedatas.selected['y']);
+            this.updateSelectedToken(gamedatas.selected['x'], gamedatas.selected['y']);
             dojo.query('.square').connect('onclick', this, 'onplaceToken');
-            dojo.query('.token').connect('onclick', this, 'onselectToken');
-            for (var i in gamedatas.board) {
-                var square = gamedatas.board[i];
-                if (square !== undefined && square.player != -1) {
-                    this.disconnectSquare(square.x, square.y);
-                }
-            }
             this.setupNotifications();
             console.log("Ending game setup");
         };
@@ -50,17 +45,14 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             console.log('Entering state: ' + stateName);
             switch (stateName) {
                 case 'wildPlacement':
-                    if (document.querySelectorAll('.tokencolor_0').length < 5) {
-                        this.updatePossibleMoves(args.args.possibleMoves);
-                    }
-                    else {
-                        this.clearPossibleMoves();
-                    }
+                    this.updatePossibleMoves(args.args.possibleMoves);
                     break;
                 case 'playerTurn':
                     this.clearSelectable();
                     this.updatePossibleMoves(args.args.possibleMoves);
                     break;
+                case 'changePattern':
+                    this.updatePossibleMoves(args.args.possibleMoves);
             }
         };
         RivalX.prototype.onLeavingState = function (stateName) {
@@ -80,21 +72,6 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 }
             }
         };
-        RivalX.prototype.disconnectSquare = function (x, y) {
-            var disconnected_square = $("square_".concat(x, "_").concat(y));
-            console.log(disconnected_square);
-            if (disconnected_square === null) {
-                throw new Error("Disconnected square is null");
-            }
-            this.disconnect(disconnected_square, 'onclick');
-        };
-        RivalX.prototype.reconnectSquare = function (x, y) {
-            var reconnected_square = $("square_".concat(x, "_").concat(y));
-            if (reconnected_square === null) {
-                throw new Error("reconnected square is null");
-            }
-            this.connect(reconnected_square, 'onclick', 'onplaceToken');
-        };
         RivalX.prototype.clearSelectedToken = function () {
             document.querySelectorAll('.selected').forEach(function (element) {
                 element.classList.remove('selected');
@@ -104,12 +81,21 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             document.querySelectorAll('.selectable').forEach(function (element) {
                 element.classList.remove('selectable');
             });
-            this.clearSelectedToken();
         };
         RivalX.prototype.clearPossibleMoves = function () {
             document.querySelectorAll('.possibleMove').forEach(function (element) {
                 element.classList.remove('possibleMove');
             });
+        };
+        RivalX.prototype.updateSelectedToken = function (x, y) {
+            this.clearSelectedToken();
+            if (x != 0) {
+                var token = $("token_".concat(x, "_").concat(y));
+                if (token === null) {
+                    throw new Error("token was null when trying to update selected token");
+                }
+                token.classList.add('selected');
+            }
         };
         RivalX.prototype.updatePossibleMoves = function (possibleMoves) {
             this.clearPossibleMoves();
@@ -152,7 +138,6 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             else {
                 this.placeOnObject("token_".concat(x, "_").concat(y), "square_".concat(x, "_").concat(y));
             }
-            this.disconnectSquare(x, y);
         };
         RivalX.prototype.addTileOnBoard = function (x, y, player_id) {
             var player = this.gamedatas.players[player_id];
@@ -168,12 +153,16 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             this.slideToObject("scoretile_".concat(x, "_").concat(y), "square_".concat(x, "_").concat(y)).play();
         };
         RivalX.prototype.onplaceToken = function (evt) {
-            console.log("AAAAAAAAAAAAAAA");
             evt.preventDefault();
             if (!(evt.currentTarget instanceof HTMLElement))
                 throw new Error('evt.currentTarget is null! Make sure that this function is being connected to a DOM HTMLElement.');
+            var _a = evt.currentTarget.id.split('_'), _square_ = _a[0], x = _a[1], y = _a[2];
+            var token = $("token_".concat(x, "_").concat(y));
+            if (token !== null) {
+                this.onselectToken(evt);
+                return;
+            }
             if (this.checkAction('placeToken', true)) {
-                var _a = evt.currentTarget.id.split('_'), _square_ = _a[0], x = _a[1], y = _a[2];
                 this.ajaxcall("/".concat(this.game_name, "/").concat(this.game_name, "/placeToken.html"), {
                     x: x,
                     y: y,
@@ -181,44 +170,27 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 }, this, function () { });
             }
             else if (this.checkAction('moveWild')) {
-                var _b = evt.currentTarget.id.split('_'), _square_ = _b[0], x = _b[1], y = _b[2];
-                var token = $("token_".concat(x, "_").concat(y));
                 var square = $("square_".concat(x, "_").concat(y));
                 if (square === null) {
                     throw new Error('square is null! Make sure that this function is being connected to a DOM HTMLElement.');
                 }
-                if (token !== null) {
-                    if (token.classList.contains('selectable')) {
-                        if (token.classList.contains('selected')) {
-                            token.classList.remove('selected');
-                        }
-                        else {
-                            this.clearSelectedToken();
-                            token.classList.add('selected');
-                        }
-                    }
-                    else {
-                        if (this.checkAction('placeWild', true)) {
-                            this.showMessage("Cannot place here, there is already a token", "error");
-                        }
-                        else {
-                            this.showMessage("This token is not selectable, only wilds used in the pattern are movable", "error");
-                        }
-                        return;
-                    }
-                }
-                else {
-                    var selected = document.querySelector('.selected');
-                    if (selected !== null) {
-                        console.log("Moving token");
-                        var _c = selected.id.split('_'), _square_1 = _c[0], old_x = _c[1], old_y = _c[2];
+                var selected = document.querySelector('.selected');
+                if (selected !== null) {
+                    if (square.classList.contains('possibleMove')) {
+                        var _b = selected.id.split('_'), _square_1 = _b[0], old_x = _b[1], old_y = _b[2];
                         this.ajaxcall("/".concat(this.game_name, "/").concat(this.game_name, "/moveWild.html"), {
                             old_x: old_x, old_y: old_y, new_x: x, new_y: y, lock: true
                         }, this, function () { });
                     }
                     else {
-                        if (this.checkAction('placeWild', true)) {
-                            if (document.querySelectorAll('.tokencolor_0').length < 5) {
+                        this.showMessage("Cannot place a wild here, when initially placing wilds they cannot be adjacent to other wilds," +
+                            "when moving wilds after completing a pattern they cannot complete another pattern unless it is a pattern of 5 wilds", "error");
+                    }
+                }
+                else {
+                    if (this.checkAction('placeWild', true)) {
+                        if (document.querySelectorAll('.tokencolor_0').length < 5) {
+                            if (square.classList.contains('possibleMove')) {
                                 this.ajaxcall("/".concat(this.game_name, "/").concat(this.game_name, "/placeWild.html"), {
                                     x: x,
                                     y: y,
@@ -226,12 +198,15 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                                 }, this, function () { });
                             }
                             else {
-                                this.showMessage("Cannot place any more wilds, either select and move wilds or finish turn", "error");
+                                this.showMessage("Cannot place a wild here, when initially placing wilds they cannot be adjacent to other wilds", "error");
                             }
                         }
                         else {
-                            this.showMessage("You must first select a wild to move it", "error");
+                            this.showMessage("Cannot place any more wilds, either select and move wilds or finish turn", "error");
                         }
+                    }
+                    else {
+                        this.showMessage("You must first select a wild to move it", "error");
                     }
                 }
             }
@@ -252,15 +227,18 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 }
                 if (token.classList.contains('selectable')) {
                     if (token.classList.contains('selected')) {
-                        token.classList.remove('selected');
+                        this.ajaxcall("/".concat(this.game_name, "/").concat(this.game_name, "/selectWild.html"), {
+                            x: 0, y: 0, lock: true
+                        }, this, function () { });
                     }
                     else {
-                        this.clearSelectedToken();
-                        token.classList.add('selected');
+                        this.ajaxcall("/".concat(this.game_name, "/").concat(this.game_name, "/selectWild.html"), {
+                            x: x, y: y, lock: true
+                        }, this, function () { });
                     }
                 }
                 else {
-                    this.showMessage("This token is not selectable", "error");
+                    this.showMessage("This token is not selectable, only wilds used in the pattern are movable", "error");
                 }
             }
         };
@@ -286,6 +264,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             this.notifqueue.setSynchronous('addScoreTiles', 300);
             dojo.subscribe('moveWild', this, "notif_moveWild");
             this.notifqueue.setSynchronous('moveWild', 300);
+            dojo.subscribe('selectWild', this, "notif_selectWild");
         };
         RivalX.prototype.notif_playToken = function (notif) {
             this.addTokenOnBoard(notif.args.x, notif.args.y, notif.args.player_id, notif.args.wild, notif.args.selectable == 1);
@@ -334,11 +313,10 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 throw new Error("When moving a wild somehow a token reference became null");
             }
             token.id = "token_".concat(notif.args.new_x, "_").concat(notif.args.new_y);
-            document.querySelectorAll('.selected').forEach(function (element) {
-                element.classList.remove('selected');
-            });
-            this.disconnectSquare(notif.args.new_x, notif.args.new_y);
-            this.reconnectSquare(notif.args.old_x, notif.args.old_y);
+            this.updateSelectedToken(0, 0);
+        };
+        RivalX.prototype.notif_selectWild = function (notif) {
+            this.updateSelectedToken(notif.args.x, notif.args.y);
         };
         return RivalX;
     }(Gamegui));

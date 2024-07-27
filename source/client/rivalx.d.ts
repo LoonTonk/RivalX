@@ -19,12 +19,15 @@ declare global {
 		'removeTokens': { x: number, y: number}[];
 		'addScoreTiles': { x: number, y: number, player_id: number}[];
 		'moveWild': { old_x: number, old_y: number, new_x: number, new_y: number };
+		'selectWild': {x: number, y: number};
 		// [name: string]: any; // Uncomment to remove type safety on notification names and arguments
 	}
 
 	/** @gameSpecific Add game specific gamedatas arguments here. See {@link Gamedatas} for more information. */
 	interface Gamedatas {
 		board: {x: number, y: number, player: number, player_tile: number, selectable: number}[];
+		selected: {x: number, y: number};
+		lastPlayed: {x: number, y: number};
 		// [key: string | number]: Record<keyof any, any>; // Uncomment to remove type safety on game state arguments
 	}
 

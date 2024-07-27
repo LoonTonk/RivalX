@@ -34,6 +34,9 @@
 
 var jstpl_token = '<div class="token tokencolor_${color}" id="token_${x_y}"></div>';
 var jstpl_scoretile = '<div class="scoretile tilecolor_${color}" id="scoretile_${x_y}"></div>';
+/* var jstpl_player_board = '\<div class="cp_board">\
+    <div id="stoneicon_p${id}" class="gmk_stoneicon gmk_stoneicon_${color}"></div><span id="stonecount_p${id}">0</span>\
+</div>'; */
 // Javascript HTML templates
 
 /*
