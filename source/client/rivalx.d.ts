@@ -18,6 +18,7 @@ declare global {
 		'newScores': { scores: Record<number, number> };
 		'removeTokens': { x: number, y: number}[];
 		'addScoreTiles': { x: number, y: number, player_id: number}[];
+		'moveWild': { old_x: number, old_y: number, new_x: number, new_y: number };
 		// [name: string]: any; // Uncomment to remove type safety on notification names and arguments
 	}
 

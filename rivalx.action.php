@@ -40,19 +40,6 @@ class action_rivalx extends APP_GameAction
 		self::ajaxResponse();
 	}
 
-	public function selectWild()
-	{
-		self::setAjaxMode();
-
-		/** @var int $x */
-		$x = self::getArg('x', AT_int, true);
-		/** @var int $y */
-		$y = self::getArg('y', AT_int, true);
-
-		$this->game->selectWild( $x, $y );
-		self::ajaxResponse();
-	}
-
 	public function moveWild()
 	{
 		self::setAjaxMode();
