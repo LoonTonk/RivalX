@@ -41,20 +41,9 @@
 			"placeWild": [
 				{ "name": "x", "type": "AT_int" },
 				{ "name": "y", "type": "AT_int" }
-			],
-			"selectWild": [
-                { "name": "x", "type": "AT_int" },
-                { "name": "y", "type": "AT_int" }
-			],
-			"moveWild":  [
-				{ "name": "old_x", "type": "AT_int" },
-				{ "name": "old_y", "type": "AT_int" },
-				{ "name": "new_x", "type": "AT_int" },
-				{ "name": "new_y", "type": "AT_int" }
-			],
-			"finishTurn": []
+			]
 		},
-		"transitions": { "placeWild": 2, "selectWild": 2, "moveWild": 2, "finishTurn": 11 }
+		"transitions": { "placeWild": 2, "finishTurn": 11 }
 	},
 
 	"10": {
@@ -105,13 +94,9 @@
 				{ "name": "new_x", "type": "AT_int" },
 				{ "name": "new_y", "type": "AT_int" }
 			],
-			"selectWild": [
-                { "name": "x", "type": "AT_int" },
-                { "name": "y", "type": "AT_int" }
-			],
 			"finishTurn": []
 		},
-		"transitions": { "selectWild": 20, "moveWild": 20, "finishTurn": 11, "wildPattern": 99 }
+		"transitions": { "moveWild": 20, "finishTurn": 11, "endGame": 99 }
     },
 
 /*

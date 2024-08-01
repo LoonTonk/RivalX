@@ -25,9 +25,7 @@ declare global {
 
 	/** @gameSpecific Add game specific gamedatas arguments here. See {@link Gamedatas} for more information. */
 	interface Gamedatas {
-		board: {x: number, y: number, player: number, player_tile: number, selectable: number}[];
-		selected: {x: number, y: number};
-		lastPlayed: {x: number, y: number};
+		board: {x: number, y: number, player: number, player_tile: number, selectable: number, lastPlayed: number}[];
 		// [key: string | number]: Record<keyof any, any>; // Uncomment to remove type safety on game state arguments
 	}
 

@@ -15,7 +15,7 @@ import "ebg/counter";
 /** The root for all of your game code. */
 class RivalX extends Gamegui
 {
-
+	static readonly MAX_WILDS: number = 5;
 	/** @gameSpecific See {@link Gamegui} for more information. */
 	constructor(){
 		super();
@@ -32,15 +32,13 @@ class RivalX extends Gamegui
 				let square = gamedatas.board[i];
 		
 				if( square !== undefined && square.player != -1 ) { // If square is defined and has a player
-					this.addTokenOnBoard( square.x, square.y, square.player, square.player == 0, square.selectable == 1 ); //Adds wild token if player id is 0
+					this.addTokenOnBoard( square.x, square.y, square.player, square.selectable == 1, square.lastPlayed == 1 ); //Adds wild token if player id is 0
 				}
 				if (square !== undefined && square.player_tile != -1) {
 					console.log("square is " + square + " square.player_tile is " + square.player_tile);
 					this.addTileOnBoard(square.x, square.y, square.player_tile);
 				}
 			}
-		console.log("updateSelectedToken passed in values: " + gamedatas.selected['x'] + gamedatas.selected['y']);
-		this.updateSelectedToken(gamedatas.selected['x'], gamedatas.selected['y']);
 		dojo.query( '.square' ).connect( 'onclick', this, 'onplaceToken' );
 		
 		// Setup game notifications to handle (see "setupNotifications" method below)
@@ -95,11 +93,6 @@ class RivalX extends Gamegui
 		console.log( 'onUpdateActionButtons: ' + stateName, args );                   
 		if (this.isCurrentPlayerActive()) {            
 			switch( stateName ) {
-			case 'wildPlacement':
-				if (args?.numWildsLeft !== undefined && args.numWildsLeft <= 0) {
-					this.addActionButton( 'finishTurn_button', _('Finish Turn'), 'onfinishTurn' ); 
-				}
-				break;
 				case 'changePattern':
 					this.addActionButton( 'finishTurn_button', _('Finish Turn'), 'onfinishTurn' ); 
 			}
@@ -161,14 +154,22 @@ class RivalX extends Gamegui
 	}
 
 	/** Adds a token matching the given player to the board at the specified location. */
-	addTokenOnBoard( x: number, y: number, player_id: number, wild: boolean, selectable: boolean )
+	addTokenOnBoard( x: number, y: number, player_id: number, selectable: boolean, lastPlayed: boolean )
 	{
-		if (wild) {
+		if (this.isWild(player_id)) {
 			dojo.place( this.format_block( 'jstpl_token', { // Player is placing a wild token, color should be 0 instead of player color
 				color: 0,
 				x_y: `${x}_${y}`
 			} ) , 'board' );
-
+			const numWilds = document.querySelectorAll('.tokencolor_0').length;
+			$(`token_${x}_${y}`)?.classList.add(`wild_${numWilds}`);
+			if (lastPlayed) {
+				// Remove lastPlayed from the previous token, add it to the new one
+				document.querySelectorAll('.tokencolor_0').forEach(element => {
+					element.classList.remove('.lastPlayed');
+				});
+				$(`token_${x}_${y}`)?.classList.add('.lastPlayed');
+			}
 		} else {
 			let player = this.gamedatas.players[ player_id ];
 			if (!player) {
@@ -178,12 +179,19 @@ class RivalX extends Gamegui
 				color: player.color,
 				x_y: `${x}_${y}`
 			} ) , 'board' );
+			if (lastPlayed) {
+				// Remove lastPlayed from the previous token, add it to the new one
+				document.querySelectorAll(`.tokencolor_${player.color}`).forEach(element => {
+					element.classList.remove('.lastPlayed');
+				});
+				$(`token_${x}_${y}`)?.classList.add('.lastPlayed');
+			}
 		}
 		dojo.connect( $(`token_${x}_${y}`), 'onclick', this, 'onselectToken' );
 		if (selectable) {
 			$(`token_${x}_${y}`)?.classList.add('selectable');
 		}
-		if (player_id != 0) {
+		if (!this.isWild(player_id)) {
 			this.placeOnObject( `token_${x}_${y}`, `overall_player_board_${player_id}` );
 			this.slideToObject( `token_${x}_${y}`, `square_${x}_${y}` ).play();
 		} else {
@@ -206,7 +214,11 @@ class RivalX extends Gamegui
 		this.placeOnObject( `scoretile_${x}_${y}`, `overall_player_board_${player_id}` );
 		this.slideToObject( `scoretile_${x}_${y}`, `square_${x}_${y}` ).play();
 	}
-	
+
+	// Returns true if id is a wild
+	isWild(id: number) {
+		return (id >= 1 && id <= this.MAX_WILDS);
+	  }
 
 	///////////////////////////////////////////////////
 	//// Player's action
@@ -388,7 +400,7 @@ class RivalX extends Gamegui
 
 	notif_playToken( notif: NotifAs<'playToken'> )
 	{
-		this.addTokenOnBoard( notif.args.x, notif.args.y, notif.args.player_id, notif.args.wild, notif.args.selectable == 1 );
+		this.addTokenOnBoard( notif.args.x, notif.args.y, notif.args.player_id, notif.args.selectable == 1 );
 	}
 
 	notif_markSelectableTokens( notif: NotifAs<'markSelectableTokens'> )
@@ -448,11 +460,11 @@ class RivalX extends Gamegui
 		token.id = `token_${notif.args.new_x}_${notif.args.new_y}`;
 		this.updateSelectedToken(0,0);
 	}
-
+/* 
 	notif_selectWild( notif: NotifAs<'selectWild'> )
 	{
 		this.updateSelectedToken(notif.args.x, notif.args.y);
-	}
+	} */
 
 	/*
 	Example:

@@ -24,17 +24,16 @@ CREATE TABLE IF NOT EXISTS `board` (
     `board_player` int(10) DEFAULT -1,
     `board_player_tile` int(10) DEFAULT -1,
     `board_selectable` TINYINT(1) DEFAULT 0,
+    `board_lastPlayed` TINYINT(1) DEFAULT 0,
     PRIMARY KEY (`board_x`,`board_y`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-CREATE TABLE IF NOT EXISTS `lastPlayed` (
+/* CREATE TABLE IF NOT EXISTS `lastPlayed` (
     `lastPlayed_x` smallint(5) unsigned NOT NULL,
     `lastPlayed_y` smallint(5) unsigned NOT NULL,
     `lastPlayed_player` int(10) unsigned NOT NULL,
-    `selected_x` smallint(5) unsigned NOT NULL,
-    `selected_y` smallint(5) unsigned NOT NULL,
     PRIMARY KEY (`lastPlayed_x`,`lastPlayed_y`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8; */
 
 ALTER TABLE `player` ADD `player_tokens_left` smallint(5) unsigned NOT NULL;
 -- Example 1: create a standard "card" table to be used with the "Deck" tools (see example game "hearts"):
