@@ -37,11 +37,9 @@ $machinestates = array(
 		'descriptionmyturn' => clienttranslate('${you} must place ${numWildsLeft} more wild tokens on the board'),
 		'type' => 'activeplayer',
 		'args' => 'argwildPlacement',
-		'possibleactions' => ['placeWild', 'selectWild', 'moveWild', 'finishTurn'],
+		'possibleactions' => ['placeWild'],
 		'transitions' => array(
 			'placeWild' => 2,
-			'selectWild' => 2,
-			'moveWild' => 2,
 			'finishTurn' => 11,
 		),
 	),
@@ -74,12 +72,11 @@ $machinestates = array(
 		'descriptionmyturn' => clienttranslate('${you} have scored a pattern and must move wilds'),
 		'type' => 'activeplayer',
 		'args' => 'argchangePattern',
-		'possibleactions' => ['moveWild', 'selectWild', 'finishTurn'],
+		'possibleactions' => ['moveWild', 'finishTurn'],
 		'transitions' => array(
-			'selectWild' => 20,
 			'moveWild' => 20,
 			'finishTurn' => 11,
-			'wildPattern' => 99,
+			'endGame' => 99,
 		),
 	),
 	99 => array(

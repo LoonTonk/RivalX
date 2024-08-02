@@ -84,8 +84,8 @@
         "descriptionmyturn": "${you} have scored a pattern and must move wilds",
         "type": "activeplayer",
 		"args": "argchangePattern",
-        "argsType": {
-            "possibleMoves": "boolean[][]"
+		"argsType": {
+            "possibleMoves": "boolean[][][]"
         },
 		"possibleactions": {
 			"moveWild":  [

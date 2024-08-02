@@ -40,7 +40,7 @@ class action_rivalx extends APP_GameAction
 		self::ajaxResponse();
 	}
 
-	public function selectWild()
+	public function placeToken()
 	{
 		self::setAjaxMode();
 
@@ -49,7 +49,7 @@ class action_rivalx extends APP_GameAction
 		/** @var int $y */
 		$y = self::getArg('y', AT_int, true);
 
-		$this->game->selectWild( $x, $y );
+		$this->game->placeToken( $x, $y );
 		self::ajaxResponse();
 	}
 
@@ -75,19 +75,6 @@ class action_rivalx extends APP_GameAction
 		self::setAjaxMode();
 
 		$this->game->finishTurn(  );
-		self::ajaxResponse();
-	}
-
-	public function placeToken()
-	{
-		self::setAjaxMode();
-
-		/** @var int $x */
-		$x = self::getArg('x', AT_int, true);
-		/** @var int $y */
-		$y = self::getArg('y', AT_int, true);
-
-		$this->game->placeToken( $x, $y );
 		self::ajaxResponse();
 	}
 }
