@@ -132,6 +132,7 @@ class RivalX extends Table
         $sql = "SELECT board_x x, board_y y, board_player player, board_player_tile player_tile, board_selectable selectable, board_lastPlayed lastPlayed
         FROM board";
         $result['board'] = self::getObjectListFromDB( $sql );
+        $result['tokensLeft'] = $this->getCollectionFromDB( "SELECT player_id id, player_tokens_left tokensLeft FROM player", true );
         return $result;
     }
 
@@ -276,7 +277,7 @@ class RivalX extends Table
 
         // Notify remove tokens
         $this->dump("playerTokens", $playerTokens);
-        self::notifyAllPlayers( "removeTokens", "", $playerTokens);
+        self::notifyAllPlayers( "removeTokens", "",array('playerTokens' => $playerTokens, 'player_id' => $player_id));
 
         // Notify add point tiles
         $playerTiles = array();
@@ -587,10 +588,9 @@ class RivalX extends Table
         $max_wilds = self::MAX_WILDS;
         self::DbQuery("UPDATE board SET board_lastPlayed = 0 WHERE board_player BETWEEN 1 AND $max_wilds");
         self::DbQuery( "UPDATE board SET board_player = $numWilds, board_lastPlayed = 1 WHERE (board_x, board_y) IN (($x,$y))" );
-        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a wild token at (${x},${y}), ${numWildsLeft}/5 placed' ), array(
+        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a wild token at (${x},${y}), '.$numWilds.'/5 placed' ), array(
             'player_id' => $numWilds,
             'player_name' => self::getActivePlayerName(),
-            'numWildsLeft' => 5-$numWilds,
             'x' => $x,
             'y' => $y,
             'wild' => true

@@ -16,7 +16,7 @@ declare global {
 		'playToken': { x: number, y: number, player_id: number }; // NOTE: most of these are calling for numbers, but SQL queries return strings so these are actually strings, not numbers
 		'markSelectableTokens': { x: number, y: number }[];
 		'newScores': { scores: Record<number, number> };
-		'removeTokens': { x: number, y: number}[];
+		'removeTokens': {playerTokens: { x: number, y: number}[], player_id: string};
 		'addScoreTiles': { x: number, y: number, player_id: number}[];
 		'outlinePatterns': {x: number, y: number, patterns: string[]};
 		'moveWild': { old_x: number, old_y: number, new_x: number, new_y: number };
@@ -26,6 +26,7 @@ declare global {
 	/** @gameSpecific Add game specific gamedatas arguments here. See {@link Gamedatas} for more information. */
 	interface Gamedatas {
 		board: {x: number, y: number, player: number, player_tile: number, selectable: number, lastPlayed: number}[];
+		tokensLeft: {[key: number]: string};
 		// [key: string | number]: Record<keyof any, any>; // Uncomment to remove type safety on game state arguments
 	}
 

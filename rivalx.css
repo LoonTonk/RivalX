@@ -62,6 +62,26 @@
   background-image: url("img/redx.png");
 }
 
+.playertokens {
+  width: 64px;
+  height: 64px;
+  background-image: url("img/backgroundcircle.png");
+  position: relative;
+}
+
+.displayToken {
+  top: 50%; /* Move it to the middle vertically */
+  left: 50%; /* Move it to the middle horizontally */
+  transform: translate(-50%, -50%) scale(0.7); /* Offset by half of its own width and height */
+}
+
+.counter {
+  position: absolute;
+  top: 50%; /* Move it to the middle vertically */
+  left: 50%; /* Move it to the middle horizontally */
+  transform: translate(-50%, 50%); /* Offset by half of its own width and height */
+}
+
 .selectable::before {
   animation: selectable-token-animation 1s ease-in-out infinite alternate-reverse;
   background: url("img/glowingx.png") no-repeat;

@@ -21,11 +21,34 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
         function RivalX() {
             var _this = _super.call(this) || this;
             _this.wildsPossibleMoves = [];
+            _this.remainingTokensCounter = [];
             console.log('rivalx constructor');
             return _this;
         }
         RivalX.prototype.setup = function (gamedatas) {
             console.log("Starting game setup");
+            for (var player_id in gamedatas.players) {
+                var player = gamedatas.players[player_id];
+                if (player === undefined) {
+                    throw new Error("Player is undefined on setup");
+                }
+                var player_board_div = $('player_board_' + player_id);
+                if (player_board_div === null) {
+                    throw new Error("when trying to get player board it was null");
+                }
+                dojo.place(this.format_block('jstpl_player_board', { id: player.id, color: player.color }), player_board_div);
+                var counter = new ebg.counter();
+                counter.create('remainingTokens_' + player_id);
+                console.log(gamedatas.tokensLeft);
+                var tokensLeft = gamedatas.tokensLeft[parseInt(player_id)];
+                if (tokensLeft === undefined) {
+                    console.log("tokensLeft is undefined, player id is: ");
+                    console.log(player_id);
+                    throw new Error();
+                }
+                counter.setValue(parseInt(tokensLeft));
+                this.remainingTokensCounter[player_id] = counter;
+            }
             for (var i in gamedatas.board) {
                 var square = gamedatas.board[i];
                 if (square !== undefined && square.player != -1) {
@@ -51,10 +74,9 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                     this.updatePossibleMoves(args.args.possibleMoves);
                     break;
                 case 'changePattern':
-                    console.log(this.wildsPossibleMoves);
                     this.wildsPossibleMoves = args.args.possibleMoves;
                     this.updatePossibleMoves([]);
-                    console.log(this.wildsPossibleMoves);
+                    break;
             }
         };
         RivalX.prototype.onLeavingState = function (stateName) {
@@ -273,6 +295,11 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
         };
         RivalX.prototype.notif_playToken = function (notif) {
             this.addTokenOnBoard(notif.args.x, notif.args.y, notif.args.player_id, false, true);
+            var id = notif.args.player_id;
+            if (id > RivalX.MAX_WILDS && id !== undefined) {
+                var tokenCounter = this.remainingTokensCounter[id];
+                tokenCounter.incValue(-1);
+            }
         };
         RivalX.prototype.notif_markSelectableTokens = function (notif) {
             notif.args.forEach(function (token_pos) {
@@ -289,9 +316,11 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             }
         };
         RivalX.prototype.notif_removeTokens = function (notif) {
+            var _this = this;
             console.log("args in notif_removeTokens:");
             console.log(notif.args);
-            var tokensToRemove = Array.from(notif.args);
+            var tokensToRemove = Array.from(notif.args['playerTokens']);
+            var id = notif.args['player_id'];
             console.log(tokensToRemove);
             tokensToRemove.forEach(function (token_pos) {
                 var token = $("token_".concat(token_pos.x, "_").concat(token_pos.y));
@@ -299,6 +328,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                     throw new Error("Error: token does not exist in notif_removeTokens");
                 }
                 dojo.destroy(token);
+                _this.remainingTokensCounter[parseInt(id)].incValue(1);
             });
         };
         RivalX.prototype.notif_addScoreTiles = function (notif) {

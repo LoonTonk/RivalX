@@ -12,11 +12,23 @@
 import Gamegui = require('ebg/core/gamegui');
 import "ebg/counter";
 
+declare class Counter {
+	speed: number; // duration of the animation, default is 100ms
+  
+	create(target: string): void; //  associate counter with existing target DOM element
+	getValue(): number; //  return current value
+	incValue(by: number): number; //  increment value by "by" and animate from previous value
+	setValue(value: number): void; //  set value, no animation
+	toValue(value: number): void; // set value with animation
+	disable(): void; // Sets value to "-"
+  }
+
 /** The root for all of your game code. */
 class RivalX extends Gamegui
 {
 	static readonly MAX_WILDS: number = 5;
 	private wildsPossibleMoves: boolean[][][] = [];
+	private remainingTokensCounter: {[player_id: number]: Counter} = [];
 	/** @gameSpecific See {@link Gamegui} for more information. */
 	constructor(){
 		super();
@@ -27,6 +39,32 @@ class RivalX extends Gamegui
 	override setup(gamedatas: Gamedatas): void
 	{
 		console.log( "Starting game setup" );
+
+		// Setting up player boards, specifically counter for tokens left
+		for( var player_id in gamedatas.players ) {
+ 				var player = gamedatas.players[player_id];
+				if (player === undefined) {
+					throw new Error("Player is undefined on setup");
+				}
+				// Setting up players boards if needed
+				var player_board_div = $('player_board_'+player_id);
+				if (player_board_div === null) {
+					throw new Error("when trying to get player board it was null");
+				}
+				dojo.place( this.format_block('jstpl_player_board', {id:player.id, color:player.color} ), player_board_div );
+				const counter = new ebg.counter();
+				counter.create('remainingTokens_'+player_id);
+				console.log(gamedatas.tokensLeft);
+				const tokensLeft = gamedatas.tokensLeft[parseInt(player_id)];
+				if (tokensLeft === undefined) {
+					console.log("tokensLeft is undefined, player id is: ");
+					console.log(player_id);
+					throw new Error();
+				}
+				counter.setValue(parseInt(tokensLeft));
+				this.remainingTokensCounter[player_id] = counter;
+		}
+
 		// Place the tokens on the board
 		for( let i in gamedatas.board )
 			{
@@ -61,37 +99,16 @@ class RivalX extends Gamegui
 		switch( stateName )
 		{
 		case 'wildPlacement':
-			this.updatePossibleMoves( args.args!.possibleMoves ); //TODO: maybe different behavior if 5 wilds have already been placed?
+			this.updatePossibleMoves( args.args!.possibleMoves );
 			break;
 		case 'playerTurn':
 			this.clearSelectable();
 			this.updatePossibleMoves( args.args!.possibleMoves );
 			break;
 		case 'changePattern':
-			console.log(this.wildsPossibleMoves);
 			this.wildsPossibleMoves = args.args!.possibleMoves;
 			this.updatePossibleMoves([]);
-			console.log(this.wildsPossibleMoves);
-/* 			for (const wild_id in possibleMoves) {
-				const xMap = possibleMoves[wild_id];
-			
-				if (xMap) { // Check if xMap is defined
-					for (const x in xMap) {
-						const yArray = xMap[x];
-			
-						if (Array.isArray(yArray)) { // Check if yArray is an array
-							for (const y of yArray) {
-								console.log(`wild_id: ${wild_id}, x: ${x}, y: ${y}`);
-							}
-						} else {
-							console.log(yArray);
-						}
-					}
-				} else {
-					console.warn(`Expected xMap to be defined for wild_id: ${wild_id}`);
-				}
-			} */
-			//this.updatePossibleMoves( Array[] );
+			break;
 		} 
 	}
 
@@ -427,6 +444,11 @@ class RivalX extends Gamegui
 	notif_playToken( notif: NotifAs<'playToken'> )
 	{
 		this.addTokenOnBoard( notif.args.x, notif.args.y, notif.args.player_id, false, true );
+		const id = notif.args.player_id;
+		if (id > RivalX.MAX_WILDS && id !== undefined) {
+			const tokenCounter = this.remainingTokensCounter[id];
+			tokenCounter!.incValue(-1);
+		}
 	}
 
 	notif_markSelectableTokens( notif: NotifAs<'markSelectableTokens'> )
@@ -452,7 +474,8 @@ class RivalX extends Gamegui
 	{
 		console.log("args in notif_removeTokens:");
 		console.log(notif.args);
-		const tokensToRemove = Array.from(notif.args);
+		const tokensToRemove = Array.from(notif.args['playerTokens']);
+		const id = notif.args['player_id'];
 		console.log(tokensToRemove);
 		tokensToRemove.forEach((token_pos) => {
 			const token = $<HTMLElement>( `token_${token_pos.x}_${token_pos.y}` );
@@ -460,7 +483,8 @@ class RivalX extends Gamegui
 				throw new Error("Error: token does not exist in notif_removeTokens");
 			}
 			dojo.destroy(token);
-		  });
+			this.remainingTokensCounter[parseInt(id)]!.incValue(1);
+		  });		
 	}
 
 	notif_addScoreTiles( notif: NotifAs<'addScoreTiles'> )
