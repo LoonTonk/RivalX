@@ -221,6 +221,7 @@ class RivalX extends Table
     }
 
     // Need to notify and sql remove tokens (including token number), add point tiles, update score, make wilds selectable, highlight pattern
+    // Returns true if there are no wilds in the pattern
     // TODO: highlight pattern
     function updateBoardOnPattern($patternTokens, $board) {
 
@@ -275,95 +276,108 @@ class RivalX extends Table
             self::DbQuery( $sql );
         }
 
-        // Notify remove tokens
-        $this->dump("playerTokens", $playerTokens);
-        self::notifyAllPlayers( "removeTokens", "",array('playerTokens' => $playerTokens, 'player_id' => $player_id));
+        // Notify remove tokens and add point tiles
+/*         $this->dump("playerTokens", $playerTokens);
 
+        self::notifyAllPlayers( "removeTokens", "",array('playerTokens' => $playerTokens, 'player_id' => $player_id)); */
         // Notify add point tiles
-        $playerTiles = array();
+        $tokensToRemove = array();
         foreach ($playerTokens as $token) {
-            $playerTiles[] = array('x' => $token['x'], 'y' => $token['y'], 'player_id' => $player_id);
+            $tokensToRemove[] = array('x' => $token['x'], 'y' => $token['y'], 'player_id' => $player_id);
         }
-        self::notifyAllPlayers( "addScoreTiles", "", $playerTiles);
+/*         self::notifyAllPlayers( "addScoreTiles", "", $playerTiles); */
 
         // Notify make tokens selectable
-        self::notifyAllPlayers( "markSelectableTokens", '', $wildTokens);
+/*         self::notifyAllPlayers( "markSelectableTokens", '', $wildTokens); */
 
         // Notify outline patterns
         $centerToken = $patternTokens[$patterns[0]][0]; // Gets the first token in the first pattern
-        self::notifyAllPlayers( "outlinePatterns", '', array('x' => $centerToken['x'], 'y' => $centerToken['y'], $patterns));
+/*         self::notifyAllPlayers( "outlinePatterns", '', array('x' => $centerToken['x'], 'y' => $centerToken['y'], $patterns)); */
 
-        // Notify update scores
+        // Notify score Pattern
+        self::notifyAllPlayers( 'scorePattern', clienttranslate('${player_name} has completed a _ pattern at (locations??)'), array(
+            'selectableTokens' => $wildTokens,
+            'tokensToRemove' => $tokensToRemove,
+            'patternsToDisplay' => array('x' => $centerToken['x'], 'y' => $centerToken['y'], 'patterns' => $patterns, 'player_id' => $player_id),
+            'player_name' => $this->getPlayerNameById($player_id),
+        ) );
+
+        // Notify update scores TODO: notify what the change in scores is
         $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
-        self::notifyAllPlayers( "newScores", "", array(
+        self::notifyAllPlayers( "newScores", clienttranslate("Scores have been changed, add more detail"), array(
             "scores" => $newScores
         ) );
+
+        $this->dump("wildTokens count", count($wildTokens));
+        if (count($wildTokens) == 0) {
+            return true;
+        }
     }
 
     // Gets array of all the possible pattern combinations
     function getPatternArrays() {
-        $we_1 = array(array(1,0), array(2,0), array(3,0), array(4,0));
-        $we_2 = array(array(-1,0), array(1,0), array(2,0), array(3,0));
-        $we_3 = array(array(-2,0), array(-1,0), array(1,0), array(2,0));
-        $we_4 = array(array(-3,0), array(-2,0), array(-1,0), array(1,0));
-        $we_5 = array(array(-4,0), array(-3,0), array(-2,0), array(-1,0));
-        $ns_1 = array(array(0,1), array(0,2), array(0,3), array(0,4));
-        $ns_2 = array(array(0,-1), array(0,1), array(0,2), array(0,3));
-        $ns_3 = array(array(0,-2), array(0,-1), array(0,1), array(0,2));
-        $ns_4 = array(array(0,-3), array(0,-2), array(0,-1), array(0,1));
-        $ns_5 = array(array(0,-4), array(0,-3), array(0,-2), array(0,-1));
-        $nw_se_1 = array(array(1,1), array(2,2), array(3,3), array(4,4));
-        $nw_se_2 = array(array(-1,-1), array(1,1), array(2,2), array(3,3));
-        $nw_se_3 = array(array(-2,-2), array(-1,-1), array(1,1), array(2,2));
-        $nw_se_4 = array(array(-3,-3), array(-2,-2), array(-1,-1), array(1,1));
-        $nw_se_5 = array(array(-4,-4), array(-3,-3), array(-2,-2), array(-1,-1));
-        $ne_sw_1 = array(array(-1,1), array(-2,2), array(-3,3), array(-4,4));
-        $ne_sw_2 = array(array(1,-1), array(-1,1), array(-2,2), array(-3,3));
-        $ne_sw_3 = array(array(2,-2), array(1,-1), array(-1,1), array(-2,2));
-        $ne_sw_4 = array(array(3,-3), array(2,-2), array(1,-1), array(-1,1));
-        $ne_sw_5 = array(array(4,-4), array(3,-3), array(2,-2), array(1,-1));
-        $w_Plus = array(array(1,-1), array(1,0), array(1,1), array(2,0));
-        $n_Plus = array(array(0,1), array(-1,1), array(1,1), array(0,2));
-        $e_Plus = array(array(-1,-1), array(-1,0), array(-1,1), array(-2,0));
-        $s_Plus = array(array(0,-1), array(-1,-1), array(1,-1), array(0,-2));
-        $c_Plus = array(array(1,0), array(-1,0), array(0,1), array(0,-1));
-        $nw_X = array(array(2,0), array(0,2), array(2,2), array(1,1));
-        $ne_X = array(array(-2,0), array(0,2), array(-2,2), array(-1,1));
-        $se_X = array(array(-2,0), array(0,-2), array(-2,-2), array(-1,-1));
-        $sw_X = array(array(2,0), array(0,-2), array(2,-2), array(1,-1));
-        $c_X = array(array(1,1), array(1,-1), array(-1,1), array(-1,-1));
+        $row_1 = array(array(1,0), array(2,0), array(3,0), array(4,0));
+        $row_2 = array(array(-1,0), array(1,0), array(2,0), array(3,0));
+        $row_3 = array(array(-2,0), array(-1,0), array(1,0), array(2,0));
+        $row_4 = array(array(-3,0), array(-2,0), array(-1,0), array(1,0));
+        $row_5 = array(array(-4,0), array(-3,0), array(-2,0), array(-1,0));
+        $col_1 = array(array(0,1), array(0,2), array(0,3), array(0,4));
+        $col_2 = array(array(0,-1), array(0,1), array(0,2), array(0,3));
+        $col_3 = array(array(0,-2), array(0,-1), array(0,1), array(0,2));
+        $col_4 = array(array(0,-3), array(0,-2), array(0,-1), array(0,1));
+        $col_5 = array(array(0,-4), array(0,-3), array(0,-2), array(0,-1));
+        $nwd_1 = array(array(1,1), array(2,2), array(3,3), array(4,4));
+        $nwd_2 = array(array(-1,-1), array(1,1), array(2,2), array(3,3));
+        $nwd_3 = array(array(-2,-2), array(-1,-1), array(1,1), array(2,2));
+        $nwd_4 = array(array(-3,-3), array(-2,-2), array(-1,-1), array(1,1));
+        $nwd_5 = array(array(-4,-4), array(-3,-3), array(-2,-2), array(-1,-1));
+        $ned_1 = array(array(-1,1), array(-2,2), array(-3,3), array(-4,4));
+        $ned_2 = array(array(1,-1), array(-1,1), array(-2,2), array(-3,3));
+        $ned_3 = array(array(2,-2), array(1,-1), array(-1,1), array(-2,2));
+        $ned_4 = array(array(3,-3), array(2,-2), array(1,-1), array(-1,1));
+        $ned_5 = array(array(4,-4), array(3,-3), array(2,-2), array(1,-1));
+        $pls_W = array(array(1,-1), array(1,0), array(1,1), array(2,0));
+        $pls_N = array(array(0,1), array(-1,1), array(1,1), array(0,2));
+        $pls_E = array(array(-1,-1), array(-1,0), array(-1,1), array(-2,0));
+        $pls_S = array(array(0,-1), array(-1,-1), array(1,-1), array(0,-2));
+        $pls_C = array(array(1,0), array(-1,0), array(0,1), array(0,-1));
+        $crs_NW = array(array(2,0), array(0,2), array(2,2), array(1,1));
+        $crs_NE = array(array(-2,0), array(0,2), array(-2,2), array(-1,1));
+        $crs_SE = array(array(-2,0), array(0,-2), array(-2,-2), array(-1,-1));
+        $crs_SW = array(array(2,0), array(0,-2), array(2,-2), array(1,-1));
+        $crs_CE = array(array(1,1), array(1,-1), array(-1,1), array(-1,-1));
         // Merge all arrays into one giant nested array
         return array(
-            'we_1' => $we_1,
-            'we_2' => $we_2,
-            'we_3' => $we_3,
-            'we_4' => $we_4,
-            'we_5' => $we_5,
-            'ns_1' => $ns_1,
-            'ns_2' => $ns_2,
-            'ns_3' => $ns_3,
-            'ns_4' => $ns_4,
-            'ns_5' => $ns_5,
-            'nw_se_1' => $nw_se_1,
-            'nw_se_2' => $nw_se_2,
-            'nw_se_3' => $nw_se_3,
-            'nw_se_4' => $nw_se_4,
-            'nw_se_5' => $nw_se_5,
-            'ne_sw_1' => $ne_sw_1,
-            'ne_sw_2' => $ne_sw_2,
-            'ne_sw_3' => $ne_sw_3,
-            'ne_sw_4' => $ne_sw_4,
-            'ne_sw_5' => $ne_sw_5,
-            'w_Plus' => $w_Plus,
-            'n_Plus' => $n_Plus,
-            'e_Plus' => $e_Plus,
-            's_Plus' => $s_Plus,
-            'c_Plus' => $c_Plus,
-            'nw_X' => $nw_X,
-            'ne_X' => $ne_X,
-            'se_X' => $se_X,
-            'sw_X' => $sw_X,
-            'c_X' => $c_X
+            'row_1' => $row_1, // Row, starting at left
+            'row_2' => $row_2,
+            'row_3' => $row_3,
+            'row_4' => $row_4,
+            'row_5' => $row_5,
+            'col_1' => $col_1, // Col, starting at top
+            'col_2' => $col_2,
+            'col_3' => $col_3,
+            'col_4' => $col_4,
+            'col_5' => $col_5,
+            'nwd_1' => $nwd_1, // NW->SE diagonal, starting NW
+            'nwd_2' => $nwd_2,
+            'nwd_3' => $nwd_3,
+            'nwd_4' => $nwd_4,
+            'nwd_5' => $nwd_5,
+            'ned_1' => $ned_1, // NE-SW diagonal, starting NE
+            'ned_2' => $ned_2,
+            'ned_3' => $ned_3,
+            'ned_4' => $ned_4,
+            'ned_5' => $ned_5,
+            'pls_W' => $pls_W, // Plus, starting at cardinal direction or C for center
+            'pls_N' => $pls_N,
+            'pls_E' => $pls_E,
+            'pls_S' => $pls_S,
+            'pls_C' => $pls_C,
+            'crs_NW' => $crs_NW, // Cross (X) starting at cardinal direction or CE for center
+            'crs_NE' => $crs_NE,
+            'crs_SE' => $crs_SE,
+            'crs_SW' => $crs_SW,
+            'crs_CE' => $crs_CE
         );
     }
 
@@ -716,11 +730,15 @@ class RivalX extends Table
         $this->dump("patternTokens at stNextPlayer: ", $patternTokens);
         if (count($patternTokens) > 0) { // A pattern has been made!
             $this->dump("pattern Tokens ", $patternTokens);
-            self::updateBoardOnPattern($patternTokens, $board);
-            if (self::checkForWin()) { // Check if any player has hit the required number of points
-                $this->gamestate->nextState('endGame'); 
+            if (self::updateBoardOnPattern($patternTokens, $board)) {
+                self::activeNextPlayer();
+                $this->gamestate->nextState('nextTurn'); // TODO: might need to change to go to changePattern state instead of skipping it entirely?
             } else {
-                $this->gamestate->nextState('changePattern');
+                if (self::checkForWin()) { // Check if any player has hit the required number of points
+                    $this->gamestate->nextState('endGame'); 
+                } else {
+                    $this->gamestate->nextState('changePattern');
+                }
             }
         }
         else if (!self::allPlayersHaveTokens()) {

@@ -9,9 +9,9 @@
  * -----
  */
 #board {
-  width: 536px;
-  height: 528px;
-  background-image: url("img/white_board.png");
+  width: 522px;
+  height: 522px;
+  background-image: url("img/rivalxboard.png");
   margin: auto;
   left: 0;
   top: 0;
@@ -24,11 +24,13 @@
   width: 62px;
   height: 62px;
   position: absolute;
-  background-color: rgb(141, 141, 141);
+  background-color: rgb(255, 255, 255);
   z-index: 0;
 }
 
 .scoretile {
+  top: 0px;
+  left: 0px;
   width: 62px;
   height: 62px;
   position: absolute;
@@ -36,30 +38,32 @@
 }
 
 .tilecolor_0000FF {
-  background-image: url("img/blue.png");
+  background-color: #A4C8F0;
 }
 
 .tilecolor_FF0000 {
-  background-image: url("img/red.png");
+  background-color: #FF9AA2;
 }
 
 .token {
   width: 56px;
   height: 56px;
   position: absolute;
-  z-index: 2;
+  z-index: 4;
+  background-image: url("img/rivalxtokens.png");
+  transform: scale(0.9);
 }
 
 .tokencolor_0 {
-  background-image: url("img/wildx.png");
+  background-position: 0px 0px;
 }
 
 .tokencolor_0000FF {
-  background-image: url("img/bluex.png");
+  background-position: -56px 0px;
 }
 
 .tokencolor_FF0000 {
-  background-image: url("img/redx.png");
+  background-position: -112px 0px;
 }
 
 .playertokens {
@@ -82,31 +86,70 @@
   transform: translate(-50%, 50%); /* Offset by half of its own width and height */
 }
 
-.selectable::before {
+.selectable {
   animation: selectable-token-animation 1s ease-in-out infinite alternate-reverse;
-  background: url("img/glowingx.png") no-repeat;
-  bottom: 0px;
-  content: "";
-  left: 0px;
+  background: url("img/rivalxselected.png");
   position: absolute;
-  right: 0px;
-  top: -2px;
+  width: 60px;
+  height: 60px;
+  top: 50%; /* Move it to the middle vertically */
+  left: 50%; /* Move it to the middle horizontally */
+  transform: translate(-50%, -50%); /* Offset by half of its own width and height */
+  z-index: 5;
 }
 
 @keyframes selectable-token-animation {
   0% {
-    opacity: 0.5;
+    opacity: 0.1;
   }
   to {
-    opacity: 1;
+    opacity: 0.6;
   }
 }
-.selected {
-  background-image: url("img/selected.png");
+.selectable.selected {
+  animation: none;
 }
 
-.lastPlayed {
-  background-color: rgb(206, 101, 188);
+.pattern {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none; /* Allows clicks to pass through */
+}
+
+.patterncolor_0000FF.patterntype_row {
+  background-image: url("img/rivalxpatterns1.png");
+  height: 74px;
+  width: 330px;
+}
+
+.patterntype_col {
+  background-image: url("img/rivalxpatterns2.png");
+  height: 330px;
+  width: 74px;
+}
+
+.patterntype_nwd {
+  background-image: url("img/rivalxpatterns5.png");
+  height: 330px;
+  width: 330px;
+}
+
+.patterntype_ned {
+  background-image: url("img/rivalxpatterns6.png");
+  height: 330px;
+  width: 330px;
+}
+
+.patterntype_pls {
+  background-image: url("img/rivalxpatterns4.png");
+  height: 202px;
+  width: 202px;
+}
+
+.patterntype_crs {
+  background-image: url("img/rivalxpatterns3.png");
+  height: 202px;
+  width: 202px;
 }
 
 .possibleMove {
@@ -119,6 +162,15 @@
   background-color: rgba(255, 255, 255, 0.3);
 }
 
+/* .selectable::before {
+	animation: selectable-token-animation 1s ease-in-out infinite alternate-reverse;
+	background: url('img/rivalxselected.png') no-repeat;
+	content: "";
+	position: absolute;
+	top: 50%; /* Move it to the middle vertically 
+	left: 50%; /* Move it to the middle horizontally 
+	transform: translate(-50%, 50%) ; /* Offset by half of its own width and height 
+} */
 /*
 	This is the CSS stylesheet of your game User Interface.
 

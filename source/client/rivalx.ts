@@ -103,6 +103,7 @@ class RivalX extends Gamegui
 			break;
 		case 'playerTurn':
 			this.clearSelectable();
+			this.clearPatterns();
 			this.updatePossibleMoves( args.args!.possibleMoves );
 			break;
 		case 'changePattern':
@@ -143,6 +144,12 @@ class RivalX extends Gamegui
 	///////////////////////////////////////////////////
 	//// Utility methods
 	
+	clearPatterns() {
+		document.querySelectorAll('.pattern').forEach(element => {
+			dojo.destroy(element);
+		});
+	}
+
 	clearSelectedToken() {
 		// Remove selected tag from any previous tokens
 		document.querySelectorAll('.selected').forEach(element => {
@@ -153,7 +160,7 @@ class RivalX extends Gamegui
 	/** Removes the 'selectable' and 'selected' class from all elements. */
 	clearSelectable() {
 		document.querySelectorAll('.selectable').forEach(element => {
-			element.classList.remove('selectable');
+			dojo.destroy(element);
 		});
 	}
 
@@ -229,7 +236,11 @@ class RivalX extends Gamegui
 		}
 		dojo.connect( $(`token_${x}_${y}`), 'onclick', this, 'onselectToken' );
 		if (selectable) {
-			$(`token_${x}_${y}`)?.classList.add('selectable');
+			var selectable_token = $(`token_${x}_${y}`);
+			if (selectable_token === null) {
+				throw new Error("when trying to get selectable token it was null");
+			}
+			dojo.place("<div class='selectable'></div>", selectable_token );
 		}
 		if (!this.isWild(player_id)) {
 			this.placeOnObject( `token_${x}_${y}`, `overall_player_board_${player_id}` );
@@ -249,10 +260,185 @@ class RivalX extends Gamegui
 		dojo.place( this.format_block( 'jstpl_scoretile', {
 			color: player.color,
 			x_y: `${x}_${y}`
-		} ) , 'board' );
-		dojo.connect( $(`scoretile_${x}_${y}`), 'onclick', this, 'onplaceToken' );
+		} ) , `square_${x}_${y}` );
 		this.placeOnObject( `scoretile_${x}_${y}`, `overall_player_board_${player_id}` );
 		this.slideToObject( `scoretile_${x}_${y}`, `square_${x}_${y}` ).play();
+	}
+
+	addPatternOnBoard(pattern: string, x: number, y: number, player_id: string) {
+		console.log(`Adding pattern at position (${x}, ${y}):`, pattern);
+		const player = this.gamedatas.players[ parseInt(player_id) ];
+		if (!player) {
+			throw new Error( 'Unknown player id: ' + player_id );
+		}
+		let patternType = pattern.substring(0,3);
+		let x_pos = x;
+		let y_pos = y;
+		switch (patternType) {
+			case ('row'):
+				switch (pattern.substring(4)) {
+					case ('1'):
+						x_pos += 2;
+						break;
+					case ('2'):
+						x_pos += 1;
+						break;
+					case ('3'):
+						x_pos += 0;
+						break;
+					case ('4'):
+						x_pos += -1;
+						break;
+					case ('5'):
+						x_pos += -2;
+						break;
+					default:
+						console.log("row pattern code does not match");
+						return;
+				}
+				break;
+			case ('col'):
+				switch (pattern.substring(4)) {
+					case ('1'):
+						y_pos += 2;
+						break;
+					case ('2'):
+						y_pos += 1;
+						break;
+					case ('3'):
+						y_pos += 0;
+						break;
+					case ('4'):
+						y_pos += -1;
+						break;
+					case ('5'):
+						y_pos += -2;
+						break;
+					default:
+						console.log("col pattern code does not match");
+						return;
+				}
+				break;
+			case ('nwd'):
+				switch (pattern.substring(4)) {
+					case ('1'):
+						x_pos += 2;
+						y_pos += 2;
+						break;
+					case ('2'):
+						x_pos += 1;
+						y_pos += 1;
+						break;
+					case ('3'):
+						x_pos += 0;
+						y_pos += 0;
+						break;
+					case ('4'):
+						x_pos += -1;
+						y_pos += -1;
+						break;
+					case ('5'):
+						x_pos += -2;
+						y_pos += -2;
+						break;
+					default:
+						console.log("nwd pattern code does not match");
+						return;
+				}
+				break;
+			case ('ned'):
+				switch (pattern.substring(4)) {
+					case ('1'):
+						x_pos += -2;
+						y_pos += 2;
+						break;
+					case ('2'):
+						x_pos += -1;
+						y_pos += 1;
+						break;
+					case ('3'):
+						x_pos += 0;
+						y_pos += 0;
+						break;
+					case ('4'):
+						x_pos += 1;
+						y_pos += -1;
+						break;
+					case ('5'):
+						x_pos += 2;
+						y_pos += -2;
+						break;
+					default:
+						console.log("ned pattern code does not match");
+						return;
+				}
+				break;
+			case ('pls'):
+				switch (pattern.substring(4)) {
+					case ('W'):
+						x_pos += 1;
+						y_pos += 0;
+						break;
+					case ('N'):
+						x_pos += 0;
+						y_pos += 1;
+						break;
+					case ('C'):
+						x_pos += 0;
+						y_pos += 0;
+						break;
+					case ('E'):
+						x_pos += -1;
+						y_pos += 0;
+						break;
+					case ('S'):
+						x_pos += 0;
+						y_pos += -1;
+						break;
+					default:
+						console.log("pls pattern code does not match");
+						return;
+				}
+				break;
+			case ('crs'):
+				switch (pattern.substring(4)) {
+					case ('NW'):
+						x_pos += 1;
+						y_pos += 1;
+						break;
+					case ('NE'):
+						x_pos += -1;
+						y_pos += 1;
+						break;
+					case ('C'):
+						x_pos += 0;
+						y_pos += 0;
+						break;
+					case ('SE'):
+						x_pos += -1;
+						y_pos += -1;
+						break;
+					case ('SW'):
+						x_pos += 1;
+						y_pos += -1;
+						break;
+					default:
+						console.log("crs pattern code does not match");
+						return;
+				}
+				break;
+			default:
+				console.log("pattern code does not match");
+				return;
+		}
+
+		dojo.place( this.format_block( 'jstpl_pattern', {
+			color: player.color,
+			x_y: `${x_pos}_${y_pos}`,
+			type: patternType
+		} ) , `board` );
+		console.log("trying to place with this id: " + `pattern_${x_pos}_${y_pos}_${patternType}`);
+		this.placeOnObject( `pattern_${x_pos}_${y_pos}_${patternType}`, `square_${x_pos}_${y_pos}` );
 	}
 
 	// Returns true if id is a wild
@@ -290,7 +476,7 @@ class RivalX extends Gamegui
 			const selected = document.querySelector('.selected');
 			if (selected !== null) { // There is a selected token
 				if (square.classList.contains('possibleMove')) {
-					let [_square_, old_x, old_y] = selected.id.split('_');
+					let [_square_, old_x, old_y] = selected.closest('[id]')!.id.split('_');
 					this.ajaxcall( `/${this.game_name}/${this.game_name}/moveWild.html`, {
 						old_x: old_x, old_y: old_y, new_x: x, new_y: y, lock: true
 					}, this, function() {} );
@@ -331,13 +517,13 @@ class RivalX extends Gamegui
 			if (token === null) { // Check if there is already a token at this square's location
 				throw new Error("token was selected but was somehow null");
 			}
-			if (token.classList.contains('selectable')) {
-				// TODO: update possibleMoves
-				if (token.classList.contains('selected')) { // deselect the token
-					token.classList.remove('selected');
+			if (token.querySelector('.selectable') !== null) {
+				const selected = token.querySelector('.selected');
+				if (selected !== null) { // deselect the token
+					selected.classList.remove('selected');
 				} else {
 					this.clearSelectedToken();
-					token.classList.add('selected'); // select a token and update possibleMoves
+					token.querySelector('.selectable')!.classList.add('selected'); // select a token and update possibleMoves
 					console.log(this.wildsPossibleMoves);
 					for (const wild_id in this.wildsPossibleMoves) {
 						console.log(wild_id);
@@ -421,17 +607,18 @@ class RivalX extends Gamegui
 
 		dojo.subscribe( 'playToken', this, "notif_playToken" );
 		this.notifqueue.setSynchronous( 'playToken', 300 );
-		dojo.subscribe( 'markSelectableTokens', this, "notif_markSelectableTokens" );
-		this.notifqueue.setSynchronous( 'markSelectableTokens', 300 );
+/*		dojo.subscribe( 'markSelectableTokens', this, "notif_markSelectableTokens" );
+ 		this.notifqueue.setSynchronous( 'markSelectableTokens', 300 );
 		dojo.subscribe( 'newScores', this, "notif_newScores" );
 		this.notifqueue.setSynchronous( 'newScores', 500 );
 		dojo.subscribe( 'removeTokens', this, "notif_removeTokens" );
 		this.notifqueue.setSynchronous( 'removeTokens', 300 );
 		dojo.subscribe( 'addScoreTiles', this, "notif_addScoreTiles" );
-		this.notifqueue.setSynchronous( 'addScoreTiles', 300 );
+		this.notifqueue.setSynchronous( 'addScoreTiles', 300 ); */
 		dojo.subscribe( 'moveWild', this, "notif_moveWild" );
 		this.notifqueue.setSynchronous( 'moveWild', 300 );
-		dojo.subscribe( 'outlinePatterns', this, "notif_outlinePatterns" );
+		dojo.subscribe( 'scorePattern', this, "notif_scorePattern" );
+		this.notifqueue.setSynchronous( 'scorePattern', 500 );
 		// TODO: here, associate your game notifications with local methods
 		
 		// With base Gamegui class...
@@ -451,13 +638,16 @@ class RivalX extends Gamegui
 		}
 	}
 
-	notif_markSelectableTokens( notif: NotifAs<'markSelectableTokens'> )
+/* 	notif_markSelectableTokens( notif: NotifAs<'markSelectableTokens'> )
 	{
 		notif.args.forEach((token_pos) => {
 			const token = $<HTMLElement>( `token_${token_pos.x}_${token_pos.y}` );
-			token?.classList.add('selectable');
+			if (token === null) {
+				throw new Error("When trying to mark selectable tokens a token was null");
+			}
+			dojo.place("<div class='selectable'></div>", token );
 		  });
-	}
+	} */
 
 	notif_newScores( notif: NotifAs<'newScores'> )
 	{
@@ -470,7 +660,7 @@ class RivalX extends Gamegui
 		}
 	}
 
-	notif_removeTokens( notif: NotifAs<'removeTokens'> )
+/* 	notif_removeTokens( notif: NotifAs<'removeTokens'> )
 	{
 		console.log("args in notif_removeTokens:");
 		console.log(notif.args);
@@ -485,9 +675,9 @@ class RivalX extends Gamegui
 			dojo.destroy(token);
 			this.remainingTokensCounter[parseInt(id)]!.incValue(1);
 		  });		
-	}
+	} */
 
-	notif_addScoreTiles( notif: NotifAs<'addScoreTiles'> )
+/* 	notif_addScoreTiles( notif: NotifAs<'addScoreTiles'> )
 	{
 		notif.args.forEach((scoretile_pos) => {
 			const scoretile = $<HTMLElement>( `scoretile_${scoretile_pos.x}_${scoretile_pos.y}` );
@@ -502,23 +692,64 @@ class RivalX extends Gamegui
 		  document.querySelectorAll('.toDestroy').forEach(element => {
 			dojo.destroy(element);
 		});
-	}
+	} */
 
 	notif_moveWild( notif: NotifAs<'moveWild'> )
 	{
+		console.log(notif.args);
 		this.slideToObject( `token_${notif.args.old_x}_${notif.args.old_y}`, `square_${notif.args.new_x}_${notif.args.new_y}` ).play();
 		const token = $<HTMLElement>( `token_${notif.args.old_x}_${notif.args.old_y}` ); // Make sure to change token id as well
 		if (token === null) {
 			throw new Error("When moving a wild somehow a token reference became null");
 		}
 		token.id = `token_${notif.args.new_x}_${notif.args.new_y}`;
-		token.classList.remove('selectable');
-		token.classList.remove('selected');
+		dojo.empty(token);
 	}
 
-	notif_outlinePatterns( notif: NotifAs<'outlinePatterns'> )
-	{
-		console.log("notif_outlinePatterns has these values: " + notif.args.toString());
+	notif_scorePattern( notif: NotifAs<'scorePattern'> ) {
+		console.log('notif_scorePattern has been called');
+		console.log(notif.args);
+		console.log(notif.args.patternsToDisplay);
+		// Add patterns to board
+		notif.args.patternsToDisplay.patterns.forEach((pattern) => {
+			this.addPatternOnBoard(pattern, notif.args.patternsToDisplay.x, notif.args.patternsToDisplay.y, notif.args.patternsToDisplay.player_id);
+		});
+
+		// Remove tokens
+		// TODO: play animation before removing tokens, send them back to player?
+		console.log("args in notif_removeTokens:");
+		console.log(notif.args);
+		notif.args.tokensToRemove.forEach((token_pos) => {
+			const token = $<HTMLElement>( `token_${token_pos.x}_${token_pos.y}` );
+			if (token === null) {
+				throw new Error("Error: token does not exist in notif_removeTokens");
+			}
+			dojo.destroy(token);
+			this.remainingTokensCounter[parseInt(token_pos.player_id)]!.incValue(1);
+		});	
+
+		// Add score tiles
+		notif.args.tokensToRemove.forEach((scoretile_pos) => {
+			const scoretile = $<HTMLElement>( `scoretile_${scoretile_pos.x}_${scoretile_pos.y}` );
+			if (scoretile !== null) { // there is already a score tile here, should remove it at the end
+				scoretile.classList.add('toDestroy');
+				scoretile.id += '_toDestroy'; // change the id so we don't have multiple elements with the same id
+			}
+			this.addTileOnBoard(scoretile_pos.x, scoretile_pos.y, parseInt(scoretile_pos.player_id));
+		});
+		// Clear all scoretiles with toDestroy tag
+		document.querySelectorAll('.toDestroy').forEach(element => {
+		dojo.destroy(element);
+		});
+
+		// Mark selectable tokens
+		notif.args.selectableTokens.forEach((token_pos) => {
+			const token = $<HTMLElement>( `token_${token_pos.x}_${token_pos.y}` );
+			if (token === null) {
+				throw new Error("When trying to mark selectable tokens a token was null");
+			}
+			dojo.place("<div class='selectable'></div>", token );
+		});
 	}
 
 /* 

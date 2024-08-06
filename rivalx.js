@@ -71,6 +71,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                     break;
                 case 'playerTurn':
                     this.clearSelectable();
+                    this.clearPatterns();
                     this.updatePossibleMoves(args.args.possibleMoves);
                     break;
                 case 'changePattern':
@@ -91,6 +92,11 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 }
             }
         };
+        RivalX.prototype.clearPatterns = function () {
+            document.querySelectorAll('.pattern').forEach(function (element) {
+                dojo.destroy(element);
+            });
+        };
         RivalX.prototype.clearSelectedToken = function () {
             document.querySelectorAll('.selected').forEach(function (element) {
                 element.classList.remove('selected');
@@ -98,7 +104,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
         };
         RivalX.prototype.clearSelectable = function () {
             document.querySelectorAll('.selectable').forEach(function (element) {
-                element.classList.remove('selectable');
+                dojo.destroy(element);
             });
         };
         RivalX.prototype.clearPossibleMoves = function () {
@@ -119,7 +125,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             this.addTooltipToClass('possibleMove', '', _('Place a token here'));
         };
         RivalX.prototype.addTokenOnBoard = function (x, y, player_id, selectable, lastPlayed) {
-            var _a, _b, _c, _d;
+            var _a, _b, _c;
             if (this.isWild(player_id)) {
                 dojo.place(this.format_block('jstpl_token', {
                     color: 0,
@@ -151,7 +157,11 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             }
             dojo.connect($("token_".concat(x, "_").concat(y)), 'onclick', this, 'onselectToken');
             if (selectable) {
-                (_d = $("token_".concat(x, "_").concat(y))) === null || _d === void 0 ? void 0 : _d.classList.add('selectable');
+                var selectable_token = $("token_".concat(x, "_").concat(y));
+                if (selectable_token === null) {
+                    throw new Error("when trying to get selectable token it was null");
+                }
+                dojo.place("<div class='selectable'></div>", selectable_token);
             }
             if (!this.isWild(player_id)) {
                 this.placeOnObject("token_".concat(x, "_").concat(y), "overall_player_board_".concat(player_id));
@@ -169,10 +179,183 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             dojo.place(this.format_block('jstpl_scoretile', {
                 color: player.color,
                 x_y: "".concat(x, "_").concat(y)
-            }), 'board');
-            dojo.connect($("scoretile_".concat(x, "_").concat(y)), 'onclick', this, 'onplaceToken');
+            }), "square_".concat(x, "_").concat(y));
             this.placeOnObject("scoretile_".concat(x, "_").concat(y), "overall_player_board_".concat(player_id));
             this.slideToObject("scoretile_".concat(x, "_").concat(y), "square_".concat(x, "_").concat(y)).play();
+        };
+        RivalX.prototype.addPatternOnBoard = function (pattern, x, y, player_id) {
+            console.log("Adding pattern at position (".concat(x, ", ").concat(y, "):"), pattern);
+            var player = this.gamedatas.players[parseInt(player_id)];
+            if (!player) {
+                throw new Error('Unknown player id: ' + player_id);
+            }
+            var patternType = pattern.substring(0, 3);
+            var x_pos = x;
+            var y_pos = y;
+            switch (patternType) {
+                case ('row'):
+                    switch (pattern.substring(4)) {
+                        case ('1'):
+                            x_pos += 2;
+                            break;
+                        case ('2'):
+                            x_pos += 1;
+                            break;
+                        case ('3'):
+                            x_pos += 0;
+                            break;
+                        case ('4'):
+                            x_pos += -1;
+                            break;
+                        case ('5'):
+                            x_pos += -2;
+                            break;
+                        default:
+                            console.log("row pattern code does not match");
+                            return;
+                    }
+                    break;
+                case ('col'):
+                    switch (pattern.substring(4)) {
+                        case ('1'):
+                            y_pos += 2;
+                            break;
+                        case ('2'):
+                            y_pos += 1;
+                            break;
+                        case ('3'):
+                            y_pos += 0;
+                            break;
+                        case ('4'):
+                            y_pos += -1;
+                            break;
+                        case ('5'):
+                            y_pos += -2;
+                            break;
+                        default:
+                            console.log("col pattern code does not match");
+                            return;
+                    }
+                    break;
+                case ('nwd'):
+                    switch (pattern.substring(4)) {
+                        case ('1'):
+                            x_pos += 2;
+                            y_pos += 2;
+                            break;
+                        case ('2'):
+                            x_pos += 1;
+                            y_pos += 1;
+                            break;
+                        case ('3'):
+                            x_pos += 0;
+                            y_pos += 0;
+                            break;
+                        case ('4'):
+                            x_pos += -1;
+                            y_pos += -1;
+                            break;
+                        case ('5'):
+                            x_pos += -2;
+                            y_pos += -2;
+                            break;
+                        default:
+                            console.log("nwd pattern code does not match");
+                            return;
+                    }
+                    break;
+                case ('ned'):
+                    switch (pattern.substring(4)) {
+                        case ('1'):
+                            x_pos += -2;
+                            y_pos += 2;
+                            break;
+                        case ('2'):
+                            x_pos += -1;
+                            y_pos += 1;
+                            break;
+                        case ('3'):
+                            x_pos += 0;
+                            y_pos += 0;
+                            break;
+                        case ('4'):
+                            x_pos += 1;
+                            y_pos += -1;
+                            break;
+                        case ('5'):
+                            x_pos += 2;
+                            y_pos += -2;
+                            break;
+                        default:
+                            console.log("ned pattern code does not match");
+                            return;
+                    }
+                    break;
+                case ('pls'):
+                    switch (pattern.substring(4)) {
+                        case ('W'):
+                            x_pos += 1;
+                            y_pos += 0;
+                            break;
+                        case ('N'):
+                            x_pos += 0;
+                            y_pos += 1;
+                            break;
+                        case ('C'):
+                            x_pos += 0;
+                            y_pos += 0;
+                            break;
+                        case ('E'):
+                            x_pos += -1;
+                            y_pos += 0;
+                            break;
+                        case ('S'):
+                            x_pos += 0;
+                            y_pos += -1;
+                            break;
+                        default:
+                            console.log("pls pattern code does not match");
+                            return;
+                    }
+                    break;
+                case ('crs'):
+                    switch (pattern.substring(4)) {
+                        case ('NW'):
+                            x_pos += 1;
+                            y_pos += 1;
+                            break;
+                        case ('NE'):
+                            x_pos += -1;
+                            y_pos += 1;
+                            break;
+                        case ('C'):
+                            x_pos += 0;
+                            y_pos += 0;
+                            break;
+                        case ('SE'):
+                            x_pos += -1;
+                            y_pos += -1;
+                            break;
+                        case ('SW'):
+                            x_pos += 1;
+                            y_pos += -1;
+                            break;
+                        default:
+                            console.log("crs pattern code does not match");
+                            return;
+                    }
+                    break;
+                default:
+                    console.log("pattern code does not match");
+                    return;
+            }
+            dojo.place(this.format_block('jstpl_pattern', {
+                color: player.color,
+                x_y: "".concat(x_pos, "_").concat(y_pos),
+                type: patternType
+            }), "board");
+            console.log("trying to place with this id: " + "pattern_".concat(x_pos, "_").concat(y_pos, "_").concat(patternType));
+            this.placeOnObject("pattern_".concat(x_pos, "_").concat(y_pos, "_").concat(patternType), "square_".concat(x_pos, "_").concat(y_pos));
         };
         RivalX.prototype.isWild = function (id) {
             return (id >= 1 && id <= RivalX.MAX_WILDS);
@@ -202,7 +385,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 var selected = document.querySelector('.selected');
                 if (selected !== null) {
                     if (square.classList.contains('possibleMove')) {
-                        var _b = selected.id.split('_'), _square_1 = _b[0], old_x = _b[1], old_y = _b[2];
+                        var _b = selected.closest('[id]').id.split('_'), _square_1 = _b[0], old_x = _b[1], old_y = _b[2];
                         this.ajaxcall("/".concat(this.game_name, "/").concat(this.game_name, "/moveWild.html"), {
                             old_x: old_x, old_y: old_y, new_x: x, new_y: y, lock: true
                         }, this, function () { });
@@ -243,13 +426,14 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 if (token === null) {
                     throw new Error("token was selected but was somehow null");
                 }
-                if (token.classList.contains('selectable')) {
-                    if (token.classList.contains('selected')) {
-                        token.classList.remove('selected');
+                if (token.querySelector('.selectable') !== null) {
+                    var selected = token.querySelector('.selected');
+                    if (selected !== null) {
+                        selected.classList.remove('selected');
                     }
                     else {
                         this.clearSelectedToken();
-                        token.classList.add('selected');
+                        token.querySelector('.selectable').classList.add('selected');
                         console.log(this.wildsPossibleMoves);
                         for (var wild_id in this.wildsPossibleMoves) {
                             console.log(wild_id);
@@ -281,17 +465,10 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             console.log('notifications subscriptions setup');
             dojo.subscribe('playToken', this, "notif_playToken");
             this.notifqueue.setSynchronous('playToken', 300);
-            dojo.subscribe('markSelectableTokens', this, "notif_markSelectableTokens");
-            this.notifqueue.setSynchronous('markSelectableTokens', 300);
-            dojo.subscribe('newScores', this, "notif_newScores");
-            this.notifqueue.setSynchronous('newScores', 500);
-            dojo.subscribe('removeTokens', this, "notif_removeTokens");
-            this.notifqueue.setSynchronous('removeTokens', 300);
-            dojo.subscribe('addScoreTiles', this, "notif_addScoreTiles");
-            this.notifqueue.setSynchronous('addScoreTiles', 300);
             dojo.subscribe('moveWild', this, "notif_moveWild");
             this.notifqueue.setSynchronous('moveWild', 300);
-            dojo.subscribe('outlinePatterns', this, "notif_outlinePatterns");
+            dojo.subscribe('scorePattern', this, "notif_scorePattern");
+            this.notifqueue.setSynchronous('scorePattern', 500);
         };
         RivalX.prototype.notif_playToken = function (notif) {
             this.addTokenOnBoard(notif.args.x, notif.args.y, notif.args.player_id, false, true);
@@ -301,12 +478,6 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 tokenCounter.incValue(-1);
             }
         };
-        RivalX.prototype.notif_markSelectableTokens = function (notif) {
-            notif.args.forEach(function (token_pos) {
-                var token = $("token_".concat(token_pos.x, "_").concat(token_pos.y));
-                token === null || token === void 0 ? void 0 : token.classList.add('selectable');
-            });
-        };
         RivalX.prototype.notif_newScores = function (notif) {
             for (var player_id in notif.args.scores) {
                 var counter = this.scoreCtrl[player_id];
@@ -315,48 +486,52 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                     counter.toValue(newScore);
             }
         };
-        RivalX.prototype.notif_removeTokens = function (notif) {
-            var _this = this;
-            console.log("args in notif_removeTokens:");
-            console.log(notif.args);
-            var tokensToRemove = Array.from(notif.args['playerTokens']);
-            var id = notif.args['player_id'];
-            console.log(tokensToRemove);
-            tokensToRemove.forEach(function (token_pos) {
-                var token = $("token_".concat(token_pos.x, "_").concat(token_pos.y));
-                if (token === null) {
-                    throw new Error("Error: token does not exist in notif_removeTokens");
-                }
-                dojo.destroy(token);
-                _this.remainingTokensCounter[parseInt(id)].incValue(1);
-            });
-        };
-        RivalX.prototype.notif_addScoreTiles = function (notif) {
-            var _this = this;
-            notif.args.forEach(function (scoretile_pos) {
-                var scoretile = $("scoretile_".concat(scoretile_pos.x, "_").concat(scoretile_pos.y));
-                if (scoretile !== null) {
-                    scoretile.classList.add('toDestroy');
-                    scoretile.id += '_toDestroy';
-                }
-                _this.addTileOnBoard(scoretile_pos.x, scoretile_pos.y, scoretile_pos.player_id);
-            });
-            document.querySelectorAll('.toDestroy').forEach(function (element) {
-                dojo.destroy(element);
-            });
-        };
         RivalX.prototype.notif_moveWild = function (notif) {
+            console.log(notif.args);
             this.slideToObject("token_".concat(notif.args.old_x, "_").concat(notif.args.old_y), "square_".concat(notif.args.new_x, "_").concat(notif.args.new_y)).play();
             var token = $("token_".concat(notif.args.old_x, "_").concat(notif.args.old_y));
             if (token === null) {
                 throw new Error("When moving a wild somehow a token reference became null");
             }
             token.id = "token_".concat(notif.args.new_x, "_").concat(notif.args.new_y);
-            token.classList.remove('selectable');
-            token.classList.remove('selected');
+            dojo.empty(token);
         };
-        RivalX.prototype.notif_outlinePatterns = function (notif) {
-            console.log("notif_outlinePatterns has these values: " + notif.args.toString());
+        RivalX.prototype.notif_scorePattern = function (notif) {
+            var _this = this;
+            console.log('notif_scorePattern has been called');
+            console.log(notif.args);
+            console.log(notif.args.patternsToDisplay);
+            notif.args.patternsToDisplay.patterns.forEach(function (pattern) {
+                _this.addPatternOnBoard(pattern, notif.args.patternsToDisplay.x, notif.args.patternsToDisplay.y, notif.args.patternsToDisplay.player_id);
+            });
+            console.log("args in notif_removeTokens:");
+            console.log(notif.args);
+            notif.args.tokensToRemove.forEach(function (token_pos) {
+                var token = $("token_".concat(token_pos.x, "_").concat(token_pos.y));
+                if (token === null) {
+                    throw new Error("Error: token does not exist in notif_removeTokens");
+                }
+                dojo.destroy(token);
+                _this.remainingTokensCounter[parseInt(token_pos.player_id)].incValue(1);
+            });
+            notif.args.tokensToRemove.forEach(function (scoretile_pos) {
+                var scoretile = $("scoretile_".concat(scoretile_pos.x, "_").concat(scoretile_pos.y));
+                if (scoretile !== null) {
+                    scoretile.classList.add('toDestroy');
+                    scoretile.id += '_toDestroy';
+                }
+                _this.addTileOnBoard(scoretile_pos.x, scoretile_pos.y, parseInt(scoretile_pos.player_id));
+            });
+            document.querySelectorAll('.toDestroy').forEach(function (element) {
+                dojo.destroy(element);
+            });
+            notif.args.selectableTokens.forEach(function (token_pos) {
+                var token = $("token_".concat(token_pos.x, "_").concat(token_pos.y));
+                if (token === null) {
+                    throw new Error("When trying to mark selectable tokens a token was null");
+                }
+                dojo.place("<div class='selectable'></div>", token);
+            });
         };
         RivalX.MAX_WILDS = 5;
         return RivalX;

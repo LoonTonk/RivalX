@@ -14,12 +14,15 @@ declare global {
 	/** @gameSpecific Add game specific notifications / arguments here. See {@link NotifTypes} for more information. */
 	interface NotifTypes {
 		'playToken': { x: number, y: number, player_id: number }; // NOTE: most of these are calling for numbers, but SQL queries return strings so these are actually strings, not numbers
-		'markSelectableTokens': { x: number, y: number }[];
+		//'markSelectableTokens': { x: number, y: number }[];
 		'newScores': { scores: Record<number, number> };
-		'removeTokens': {playerTokens: { x: number, y: number}[], player_id: string};
-		'addScoreTiles': { x: number, y: number, player_id: number}[];
-		'outlinePatterns': {x: number, y: number, patterns: string[]};
+		//'removeTokens': {playerTokens: { x: number, y: number}[], player_id: string};
+		//'addScoreTiles': { x: number, y: number, player_id: number}[];
+		//'outlinePatterns': {x: number, y: number, patterns: string[]};
 		'moveWild': { old_x: number, old_y: number, new_x: number, new_y: number };
+		'scorePattern': {selectableTokens: { x: number, y: number }[], 
+						 tokensToRemove: { x: number, y: number, player_id: string}[],
+						 patternsToDisplay: {x: number, y: number, player_id: string, patterns: string[]}};
 		// [name: string]: any; // Uncomment to remove type safety on notification names and arguments
 	}
 
