@@ -490,16 +490,14 @@ class RivalX extends Table
                     }
                 }
                 return $result;
-            case 'changePattern':
+            case 'repositionWilds':
                 $allResults = array();
                 $player_ids =  array_keys($this->loadPlayersBasicInfos());  
                 $movableWilds = self::getObjectListFromDb("SELECT board_x x, board_y y FROM board WHERE board_selectable = 1");
-                $this->dump('changePattern movableWilds: ', $movableWilds);
                 foreach ($movableWilds as $wild) {
                     // Need to type cast because sql returns the vals all as strings
                     $wild['x'] = (int)$wild['x'];
-                    $wild['y'] = (int)$wild['y'];
-                    $this->dump('changePattern board: ', $board);  
+                    $wild['y'] = (int)$wild['y']; 
                     // Treat the wild as not existing for checking valid moves, as if that wild is being moved
                     $wild_id = $board[$wild['x']][$wild['y']]['player'];
                     $board[$wild['x']][$wild['y']]['player'] = -1;
@@ -691,12 +689,12 @@ class RivalX extends Table
         );
     }
 
-    function argPlayerTurn() {
+    function argplayerTurn() {
         return array( 'possibleMoves' => self::getPossibleMoves('playerTurn'));
     }
 
-    function argChangePattern() {
-        return array( 'possibleMoves' => self::getPossibleMoves('changePattern'));
+    function argrepositionWilds() {
+        return array( 'possibleMoves' => self::getPossibleMoves('repositionWilds'));
     }
     /*
     
@@ -732,12 +730,12 @@ class RivalX extends Table
             $this->dump("pattern Tokens ", $patternTokens);
             if (self::updateBoardOnPattern($patternTokens, $board)) {
                 self::activeNextPlayer();
-                $this->gamestate->nextState('nextTurn'); // TODO: might need to change to go to changePattern state instead of skipping it entirely?
+                $this->gamestate->nextState('nextTurn'); // TODO: might need to change to go to repositionWilds state instead of skipping it entirely?
             } else {
                 if (self::checkForWin()) { // Check if any player has hit the required number of points
                     $this->gamestate->nextState('endGame'); 
                 } else {
-                    $this->gamestate->nextState('changePattern');
+                    $this->gamestate->nextState('repositionWilds');
                 }
             }
         }

@@ -37,12 +37,20 @@
   z-index: 1;
 }
 
-.tilecolor_0000FF {
+.tilecolor_4363D8 {
   background-color: #A4C8F0;
 }
 
-.tilecolor_FF0000 {
+.tilecolor_E6194B {
   background-color: #FF9AA2;
+}
+
+.tilecolor_3CB44B {
+  background-color: #A1D99B;
+}
+
+.tilecolor_FFE119 {
+  background-color: #FFF4B3;
 }
 
 .token {
@@ -58,12 +66,45 @@
   background-position: 0px 0px;
 }
 
-.tokencolor_0000FF {
+.tokencolor_4363D8 {
   background-position: -56px 0px;
 }
 
-.tokencolor_FF0000 {
+.tokencolor_E6194B {
   background-position: -112px 0px;
+}
+
+.tokencolor_3CB44B {
+  background-position: -168px 0px;
+}
+
+.tokencolor_FFE119 {
+  background-position: -224px 0px;
+}
+
+.selectable {
+  animation: selectable-token-animation 1s ease-in-out infinite alternate-reverse;
+  background: url("img/rivalxtokens.png");
+  position: absolute;
+  background-position: -280px 0px;
+  width: 60px;
+  height: 60px;
+  top: 50%; /* Move it to the middle vertically */
+  left: 50%; /* Move it to the middle horizontally */
+  transform: translate(-50%, -50%); /* Offset by half of its own width and height */
+  z-index: 5;
+}
+
+@keyframes selectable-token-animation {
+  0% {
+    opacity: 0.1;
+  }
+  to {
+    opacity: 0.6;
+  }
+}
+.selectable.selected {
+  animation: none;
 }
 
 .playertokens {
@@ -86,70 +127,85 @@
   transform: translate(-50%, 50%); /* Offset by half of its own width and height */
 }
 
-.selectable {
-  animation: selectable-token-animation 1s ease-in-out infinite alternate-reverse;
-  background: url("img/rivalxselected.png");
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  top: 50%; /* Move it to the middle vertically */
-  left: 50%; /* Move it to the middle horizontally */
-  transform: translate(-50%, -50%); /* Offset by half of its own width and height */
-  z-index: 5;
-}
-
-@keyframes selectable-token-animation {
-  0% {
-    opacity: 0.1;
-  }
-  to {
-    opacity: 0.6;
-  }
-}
-.selectable.selected {
-  animation: none;
-}
-
 .pattern {
   position: absolute;
+  background-image: url("img/rivalxpatterns.png");
   z-index: 2;
   pointer-events: none; /* Allows clicks to pass through */
+  opacity: 0.8;
+  background-position: var(--x-pos, 0px) var(--y-pos, 0px);
+  transition: opacity 1s ease-in-out;
 }
 
-.patterncolor_0000FF.patterntype_row {
-  background-image: url("img/rivalxpatterns1.png");
-  height: 74px;
-  width: 330px;
+.patterncolor_4363D8 {
+  --y-pos: 0px;
 }
 
-.patterntype_col {
-  background-image: url("img/rivalxpatterns2.png");
+.patterncolor_E6194B {
+  --y-pos: 330px;
+}
+
+.patterncolor_3CB44B {
+  --y-pos: 660px;
+}
+
+.patterncolor_FFE119 {
+  --y-pos: 990px;
+}
+
+.patterntype_row, .patterntype_col {
   height: 330px;
   width: 74px;
 }
 
-.patterntype_nwd {
-  background-image: url("img/rivalxpatterns5.png");
-  height: 330px;
-  width: 330px;
+.patterntype_row, .patterntype_ned {
+  transform: rotate(90deg);
 }
 
-.patterntype_ned {
-  background-image: url("img/rivalxpatterns6.png");
-  height: 330px;
-  width: 330px;
-}
-
-.patterntype_pls {
-  background-image: url("img/rivalxpatterns4.png");
+.patterntype_pls, .patterntype_crs {
   height: 202px;
   width: 202px;
 }
 
 .patterntype_crs {
-  background-image: url("img/rivalxpatterns3.png");
-  height: 202px;
-  width: 202px;
+  --x-pos: -74px;
+}
+
+.patterntype_pls {
+  --x-pos: -276px;
+}
+
+.patterntype_nwd, .patterntype_ned {
+  --x-pos: -478px;
+  height: 330px;
+  width: 330px;
+}
+
+.flash {
+  animation: flash 3s ease-in-out;
+}
+
+@keyframes flash {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}
+.fade-out {
+  animation: fadeOut 3s forwards;
 }
 
 .possibleMove {

@@ -106,7 +106,7 @@ class RivalX extends Gamegui
 			this.clearPatterns();
 			this.updatePossibleMoves( args.args!.possibleMoves );
 			break;
-		case 'changePattern':
+		case 'repositionWilds':
 			this.wildsPossibleMoves = args.args!.possibleMoves;
 			this.updatePossibleMoves([]);
 			break;
@@ -123,7 +123,7 @@ class RivalX extends Gamegui
 		case 'wildPlacement':
 			this.clearSelectable();
 			break;
-		case 'changePattern':
+		case 'repositionWilds':
 			this.clearSelectable();
 			break;
 		}   */
@@ -135,7 +135,7 @@ class RivalX extends Gamegui
 		console.log( 'onUpdateActionButtons: ' + stateName, args );                   
 		if (this.isCurrentPlayerActive()) {            
 			switch( stateName ) {
-				case 'changePattern':
+				case 'repositionWilds':
 					this.addActionButton( 'finishTurn_button', _('Finish Turn'), 'onfinishTurn' ); 
 			}
 		}
@@ -211,13 +211,13 @@ class RivalX extends Gamegui
 			} ) , 'board' );
 			$(`token_${x}_${y}`)?.classList.add(`wild_${player_id}`);
 			if (lastPlayed) {
-				// Remove lastPlayed from the previous token, add it to the new one
+				// Remove lastPlayed from the previous token, add it to the new one TODO: change how lastPlayed works, if at all
 				document.querySelectorAll('.tokencolor_0').forEach(element => {
 					element.classList.remove('lastPlayed');
 				});
 				$(`token_${x}_${y}`)?.classList.add('lastPlayed');
 			}
-		} else {
+		} else { // it's a player token
 			let player = this.gamedatas.players[ player_id ];
 			if (!player) {
 				throw new Error( 'Unknown player id: ' + player_id );
@@ -437,8 +437,16 @@ class RivalX extends Gamegui
 			x_y: `${x_pos}_${y_pos}`,
 			type: patternType
 		} ) , `board` );
-		console.log("trying to place with this id: " + `pattern_${x_pos}_${y_pos}_${patternType}`);
-		this.placeOnObject( `pattern_${x_pos}_${y_pos}_${patternType}`, `square_${x_pos}_${y_pos}` );
+		const patternElement = <HTMLElement>$(`pattern_${x_pos}_${y_pos}_${patternType}`);
+		this.placeOnObject( patternElement, `square_${x_pos}_${y_pos}` );
+		patternElement.classList.add('flash'); // Add flash effect
+		//element.style.opacity = 1; // Ensure full opacity
+
+		// After the flash animation completes, start the fade out
+		setTimeout(() => {
+			patternElement.classList.remove('flash'); // Remove flash effect
+			patternElement.classList.add('fade-out'); // Start fade out
+		}, 3000); // Time to match the flash animation duration
 	}
 
 	// Returns true if id is a wild

@@ -61,17 +61,17 @@ $machinestates = array(
 		'updateGameProgression' => true,
 		'transitions' => array(
 			'nextTurn' => 10,
-			'changePattern' => 20,
+			'repositionWilds' => 20,
 			'endGame' => 99,
 		),
 		'description' => '',
 	),
 	20 => array(
-		'name' => 'changePattern',
-		'description' => clienttranslate('${actplayer} has scored a pattern and must move wilds'),
-		'descriptionmyturn' => clienttranslate('${you} have scored a pattern and must move wilds'),
+		'name' => 'repositionWilds',
+		'description' => clienttranslate('${actplayer} has scored a pattern and can reposition wilds'),
+		'descriptionmyturn' => clienttranslate('${you} have scored a pattern and can reposition wilds'),
 		'type' => 'activeplayer',
-		'args' => 'argchangePattern',
+		'args' => 'argrepositionWilds',
 		'possibleactions' => ['moveWild', 'finishTurn'],
 		'transitions' => array(
 			'moveWild' => 20,

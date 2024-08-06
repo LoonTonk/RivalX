@@ -73,17 +73,17 @@
         "updateGameProgression": true,
         "transitions": {
             "nextTurn": 10,
-			"changePattern": 20,
+			"repositionWilds": 20,
             "endGame": 99
         }
     },
 
 	"20": {
-        "name": "changePattern",
-        "description": "${actplayer} has scored a pattern and must move wilds",
-        "descriptionmyturn": "${you} have scored a pattern and must move wilds",
+        "name": "repositionWilds",
+        "description": "${actplayer} has scored a pattern and can reposition wilds",
+        "descriptionmyturn": "${you} have scored a pattern and can reposition wilds",
         "type": "activeplayer",
-		"args": "argchangePattern",
+		"args": "argrepositionWilds",
 		"argsType": {
             "possibleMoves": "boolean[][][]"
         },

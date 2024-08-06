@@ -74,7 +74,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                     this.clearPatterns();
                     this.updatePossibleMoves(args.args.possibleMoves);
                     break;
-                case 'changePattern':
+                case 'repositionWilds':
                     this.wildsPossibleMoves = args.args.possibleMoves;
                     this.updatePossibleMoves([]);
                     break;
@@ -87,7 +87,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             console.log('onUpdateActionButtons: ' + stateName, args);
             if (this.isCurrentPlayerActive()) {
                 switch (stateName) {
-                    case 'changePattern':
+                    case 'repositionWilds':
                         this.addActionButton('finishTurn_button', _('Finish Turn'), 'onfinishTurn');
                 }
             }
@@ -354,8 +354,13 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 x_y: "".concat(x_pos, "_").concat(y_pos),
                 type: patternType
             }), "board");
-            console.log("trying to place with this id: " + "pattern_".concat(x_pos, "_").concat(y_pos, "_").concat(patternType));
-            this.placeOnObject("pattern_".concat(x_pos, "_").concat(y_pos, "_").concat(patternType), "square_".concat(x_pos, "_").concat(y_pos));
+            var patternElement = $("pattern_".concat(x_pos, "_").concat(y_pos, "_").concat(patternType));
+            this.placeOnObject(patternElement, "square_".concat(x_pos, "_").concat(y_pos));
+            patternElement.classList.add('flash');
+            setTimeout(function () {
+                patternElement.classList.remove('flash');
+                patternElement.classList.add('fade-out');
+            }, 3000);
         };
         RivalX.prototype.isWild = function (id) {
             return (id >= 1 && id <= RivalX.MAX_WILDS);

@@ -22,15 +22,15 @@
 	"bgg_id": 131387,
 
 	// Players
-	"players": [2 ],
-	"player_colors": ["0000FF", "FF0000"], // blue, red
+	"players": [2, 3, 4 ],
+	"player_colors": ["4363D8", "E6194B", "3CB44B", "FFE119"], // blue, red, green, yellow
 	"favorite_colors_support": true,
 	"suggest_player_number": null,
 	"not_recommend_player_number": null,
 	"disable_player_order_swap_on_rematch": false,
 
 	// Game Clock
-	"estimated_duration": 30,
+	"estimated_duration": 15,
 	"fast_additional_time": 30,
 	"medium_additional_time": 40,
 	"slow_additional_time": 50,
