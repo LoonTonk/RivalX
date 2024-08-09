@@ -45,8 +45,8 @@ $machinestates = array(
 	),
 	10 => array(
 		'name' => 'playerTurn',
-		'description' => clienttranslate('${actplayer} must play a token'),
-		'descriptionmyturn' => clienttranslate('${you} must play a token'),
+		'description' => clienttranslate('${actplayer} must place a token'),
+		'descriptionmyturn' => clienttranslate('${you} must place a token'),
 		'type' => 'activeplayer',
 		'args' => 'argplayerTurn',
 		'possibleactions' => ['placeToken'],

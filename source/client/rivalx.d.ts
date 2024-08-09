@@ -22,8 +22,9 @@ declare global {
 		'moveWild': { old_x: number, old_y: number, new_x: number, new_y: number };
 		'scorePattern': {selectableTokens: { x: number, y: number }[], 
 						 tokensToRemove: { x: number, y: number, player_id: string}[],
-						 patternsToDisplay: {x: number, y: number, player_id: string, patterns: string[]}};
+						 patternsToDisplay: {x: number, y: number, player_id: string, patterns: string[]}}; // TODO: should scores and scorePattern be in the same notif with a combined message?
 		// [name: string]: any; // Uncomment to remove type safety on notification names and arguments
+		'blockadeWin': {};
 	}
 
 	/** @gameSpecific Add game specific gamedatas arguments here. See {@link Gamedatas} for more information. */

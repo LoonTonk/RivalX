@@ -48,8 +48,8 @@
 
 	"10": {
         "name": "playerTurn",
-        "description": "${actplayer} must play a token",
-        "descriptionmyturn": "${you} must play a token",
+        "description": "${actplayer} must place a token",
+        "descriptionmyturn": "${you} must place a token",
         "type": "activeplayer",
 		"args": "argplayerTurn",
         "argsType": {

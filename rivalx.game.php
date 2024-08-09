@@ -23,6 +23,8 @@ require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 class RivalX extends Table
 {
     const MAX_WILDS = 5;
+    const POINTS_TO_WIN = array(2 => 15, 3 => 12, 4 => 10);
+    const PLAYER_TOKEN_COUNT = 15;
 	function __construct( )
 	{
         // Your global variables labels:
@@ -67,7 +69,7 @@ class RivalX extends Table
         // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
         $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar, player_tokens_left) VALUES ";
         $values = array();
-        $player_token_count = 15;
+        $player_token_count = self::PLAYER_TOKEN_COUNT;
         foreach( $players as $player_id => $player )
         {
             $color = array_shift( $default_colors );
@@ -91,12 +93,11 @@ class RivalX extends Table
         // TODO: setup the initial game situation here
         $sql = "INSERT INTO board (board_x,board_y,board_player,board_player_tile,board_selectable,board_lastPlayed) VALUES ";
         $sql_values = array();
-        list( $blueplayer_id, $redplayer_id ) = array_keys( $players ); //TODO: remove after testing
         for( $x=1; $x<=8; $x++ )
         {
             for( $y=1; $y<=8; $y++ )
             {
-                $sql_values[] = "($x,$y,-1,-1,0,0)";
+                $sql_values[] = "($x,$y,-1,-1,0,-1)";
             }
         }
         $sql .= implode( ',', $sql_values );
@@ -204,13 +205,7 @@ class RivalX extends Table
 
     // Returns true if a player has achieved enough points
     function checkForWin() {
-        $player_ids =  array_keys($this->loadPlayersBasicInfos());  
-        $points_to_win = 15;
-        if (count($player_ids) === 3) {
-            $points_to_win = 12;
-        } else if (count($player_ids) === 4) {
-            $points_to_win = 10;
-        }
+        $points_to_win = self::POINTS_TO_WIN[$this->getPlayersNumber()];
         $scores = $this->getObjectListFromDB( "SELECT player_score score FROM player", true );
         foreach($scores as $score) {
             if ((int)$score >= $points_to_win) {
@@ -222,12 +217,9 @@ class RivalX extends Table
 
     // Need to notify and sql remove tokens (including token number), add point tiles, update score, make wilds selectable, highlight pattern
     // Returns true if there are no wilds in the pattern
-    // TODO: highlight pattern
     function updateBoardOnPattern($patternTokens, $board) {
-
-        // Remove lastPlayed from all the wilds
-        $max_wilds = self::MAX_WILDS;
-        self::DbQuery("UPDATE board SET board_lastPlayed = 0 WHERE board_player BETWEEN 1 AND $max_wilds");
+        // Track previous scores to compare later
+        $oldScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
 
         // First, separate pattern Tokens into player and non player
         $patterns = array();
@@ -257,6 +249,10 @@ class RivalX extends Table
         $sql = substr($sql, 0, -1) . ")"; // Removes the last character
         self::DbQuery( $sql );
 
+        // Remove lastPlayed from the player who just made a pattern
+        $max_wilds = self::MAX_WILDS;
+        self::DbQuery("UPDATE board SET board_lastPlayed = -1 WHERE board_player = $player_id");
+
         // Then update score for all players
         $player_ids =  array_keys($this->loadPlayersBasicInfos());  
         foreach ($player_ids as $player) {
@@ -265,7 +261,7 @@ class RivalX extends Table
 
         // update token count for player who made pattern
         $tokens_back = count($playerTokens);
-        self::DbQuery( "UPDATE player SET player_tokens_left = player_tokens_left + $tokens_back WHERE player_id = $player_id" ); // TODO: Fix, for some reason there are way too many patterns
+        self::DbQuery( "UPDATE player SET player_tokens_left = player_tokens_left + $tokens_back WHERE player_id = $player_id" );
         // Make wilds selectable (if any exist)
         if (count($wildTokens) > 0) {
             $sql = "UPDATE board SET board_selectable = 1 WHERE (board_x, board_y) IN (";
@@ -295,20 +291,64 @@ class RivalX extends Table
 /*         self::notifyAllPlayers( "outlinePatterns", '', array('x' => $centerToken['x'], 'y' => $centerToken['y'], $patterns)); */
 
         // Notify score Pattern
-        self::notifyAllPlayers( 'scorePattern', clienttranslate('${player_name} has completed a _ pattern at (locations??)'), array(
+        if (count($patterns) > 1) {
+            $patternName = 'combination';
+        } else {
+            $patternCode = substr($patterns[0],0,3);
+            switch ($patternCode) {
+                case ('row'):
+                    $patternName = 'row';
+                    break;
+                case ('col'):
+                    $patternName = 'column';
+                    break;
+                case ('nwd'):
+                    $patternName = 'diagonal';
+                    break;
+                case ('ned'):
+                    $patternName = 'diagonal';
+                    break;
+                case ('pls'):
+                    $patternName = 'plus';
+                    break;
+                case ('crs'):
+                    $patternName = 'cross';
+                    break;
+                default:
+                    throw new feException( "When parsing pattern code did not match any known pattern: ".$patternCode );
+            }
+        }
+        self::notifyAllPlayers( 'scorePattern', clienttranslate('${player_name} has completed a ${pattern_name} pattern'), array( //TODO: list tiles the pattern was on?
             'selectableTokens' => $wildTokens,
             'tokensToRemove' => $tokensToRemove,
             'patternsToDisplay' => array('x' => $centerToken['x'], 'y' => $centerToken['y'], 'patterns' => $patterns, 'player_id' => $player_id),
             'player_name' => $this->getPlayerNameById($player_id),
+            'pattern_name' => $patternName,
         ) );
 
         // Notify update scores TODO: notify what the change in scores is
         $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
-        self::notifyAllPlayers( "newScores", clienttranslate("Scores have been changed, add more detail"), array(
+        $currPlayerPointGain = $newScores[$player_id] - $oldScores[$player_id];
+        $scoreChangeMessage = $this->getPlayerNameById($player_id) . ' has scored ' . $currPlayerPointGain . ' point' ;
+        if ($currPlayerPointGain > 1) {
+            $scoreChangeMessage .= 's';
+        }
+        foreach ($newScores as $player => $newScore) {
+            if ($player == $player_id) { // Counting score for player that scored is already done above
+                continue;
+            }
+            $otherPlayerPointLoss = $oldScores[$player] - $newScore;
+            if ($otherPlayerPointLoss != 0) {
+                $scoreChangeMessage .= ', '. $this->getPlayerNameById($player) .' has lost '.$otherPlayerPointLoss.' point';
+                if ($otherPlayerPointLoss > 1) {
+                    $scoreChangeMessage .= 's';
+                }
+            }
+        }
+        self::notifyAllPlayers( "newScores", clienttranslate($scoreChangeMessage), array(
             "scores" => $newScores
         ) );
 
-        $this->dump("wildTokens count", count($wildTokens));
         if (count($wildTokens) == 0) {
             return true;
         }
@@ -383,7 +423,7 @@ class RivalX extends Table
 
     function getPatternTokens($board) {
         $max_wilds = self::MAX_WILDS;
-        $sql = "SELECT board_x x, board_y y, board_player player FROM board WHERE board_lastPlayed = 1 AND board_player > $max_wilds"; 
+        $sql = "SELECT board_x x, board_y y, board_player player FROM board WHERE board_lastPlayed > $max_wilds AND board_player > $max_wilds"; 
         $lastPlayedArray = self::getObjectListFromDB( $sql );
         $this->dump("getPatternTokens sql response: ", $lastPlayedArray);
         if (count($lastPlayedArray) > 0) { // there are lastPlayed tokens
@@ -544,9 +584,35 @@ class RivalX extends Table
 
     // TODO: returns true if all players have tokens, false if any player has run out of tokens
     function allPlayersHaveTokens() {
-        $tokens_count = $this->getObjectListFromDB( "SELECT player_tokens_left tokensLeft FROM player", true );
-        foreach($tokens_count as $tokensLeft) {
-            if ((int)$tokensLeft <= 0) {
+        $player_tokens_count = $this->getObjectListFromDB( "SELECT player_id player, player_tokens_left tokensLeft, player_score score FROM player" );
+        foreach($player_tokens_count as $player_token_count) {
+            if ((int)$player_token_count['tokensLeft'] <= 0) { // A player has run out of tokens
+                $highest_score = 0;
+                $highest_score_players = array();
+                foreach ($player_tokens_count as $player_score_count) {
+                    $player_score = (int)$player_score_count['score'];
+                    if ($player_score > $highest_score) { // If score is higher than previous highest, clear highest score players and add self to it
+                        array_splice($highest_score_players, 0);
+                        $highest_score_players[] = $this->getPlayerNameById((int)$player_score_count['player']);
+                        $highest_score = $player_score;
+                    } else if ($player_score === $highest_score) { // If score is equal, add player to highest score players
+                        $highest_score_players[] = $this->getPlayerNameById((int)$player_score_count['player']);
+                    } // Otherwise, do nothing
+                }   
+
+                $winning_players_str = $highest_score_players[0] .' has';
+                $this->dump("highest_score_players", $highest_score_players);
+                if (count($highest_score_players) > 1) {
+                    $other_highest_score_players = array_diff($highest_score_players, [$highest_score_players[0]]);
+                    $winning_players_str = substr($winning_players_str, 0, -4);
+                    foreach ($other_highest_score_players as $player_name) {
+                        $winning_players_str .= ' and '.$player_name;
+                    }
+                    $winning_players_str .= ' have';
+                }
+                self::notifyAllPlayers( "blockadeWin", clienttranslate('${winning_players} won via a blockade win!'), array(
+                    "winning_players" => $winning_players_str
+                ) );
                 return false;
             }
         }
@@ -568,10 +634,10 @@ class RivalX extends Table
         self::checkAction( 'placeToken' );
         $player_id = self::getActivePlayerId();
         // Removes lastPlayed from the previous token
-        $sql = "UPDATE board SET board_lastPlayed = 0 WHERE board_player = $player_id";
+        $sql = "UPDATE board SET board_lastPlayed = -1 WHERE board_lastPlayed = $player_id";
         self::DbQuery( $sql );
         // Adds token to board
-        $sql = "UPDATE board SET board_player = $player_id, board_lastPlayed = 1 WHERE (board_x, board_y) IN (($x,$y))";
+        $sql = "UPDATE board SET board_player = $player_id, board_lastPlayed = $player_id WHERE (board_x, board_y) IN (($x,$y))";
         self::DbQuery( $sql );
         // Lowers player's remaining token count
         $sql = "UPDATE player SET player_tokens_left = player_tokens_left - 1 WHERE (player_id) IN ($player_id)";
@@ -598,8 +664,7 @@ class RivalX extends Table
         self::checkAction( 'placeWild' );
         $numWilds = self::getNumWilds() + 1;
         $max_wilds = self::MAX_WILDS;
-        self::DbQuery("UPDATE board SET board_lastPlayed = 0 WHERE board_player BETWEEN 1 AND $max_wilds");
-        self::DbQuery( "UPDATE board SET board_player = $numWilds, board_lastPlayed = 1 WHERE (board_x, board_y) IN (($x,$y))" );
+        self::DbQuery( "UPDATE board SET board_player = $numWilds WHERE (board_x, board_y) IN (($x,$y))" );
         self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a wild token at (${x},${y}), '.$numWilds.'/5 placed' ), array(
             'player_id' => $numWilds,
             'player_name' => self::getActivePlayerName(),
@@ -620,8 +685,10 @@ class RivalX extends Table
     function moveWild($old_x, $old_y, $new_x, $new_y) {
         self::checkAction('moveWild');
         $wild_id = self::getObjectFromDb("SELECT board_player id FROM board WHERE (board_x, board_y) IN (($old_x,$old_y))")['id'];
-        self:: DbQuery( "UPDATE board SET board_player = -1, board_selectable = 0, board_lastPlayed = 0 WHERE (board_x, board_y) IN (($old_x,$old_y))"); // remove old wild location
-        self:: DbQuery( "UPDATE board SET board_player = $wild_id, board_selectable = 0, board_lastPlayed = 1 WHERE (board_x, board_y) IN (($new_x,$new_y))"); // add new wild location
+        $curr_player = $this->getCurrentPlayerId();
+        self:: DbQuery( "UPDATE board SET board_player = -1, board_selectable = 0, board_lastPlayed = -1 WHERE (board_x, board_y) IN (($old_x,$old_y))"); // remove old wild location
+        self:: DbQuery( "UPDATE board SET board_lastPlayed = -1 WHERE board_lastPlayed = $curr_player"); // remove lastPlayed from the last spot the player played
+        self:: DbQuery( "UPDATE board SET board_player = $wild_id, board_selectable = 0, board_lastPlayed = $curr_player WHERE (board_x, board_y) IN (($new_x,$new_y))"); // add new wild location
         self::notifyAllPlayers( "moveWild", clienttranslate( '${player_name} moves a wild from (${old_x}, ${old_y}) to (${new_x}, ${new_y})' ), array(
             'player_name' => self::getActivePlayerName(),
             'old_x' => $old_x,
@@ -629,12 +696,14 @@ class RivalX extends Table
             'new_x' => $new_x,
             'new_y' => $new_y,
         ) );
+        $points_to_win = self::POINTS_TO_WIN[$this->getPlayersNumber()];
         if (count(self::checkWildPatternExists($new_x, $new_y, self::getBoard())) > 0) { // A player has achieved a pattern of 5 wilds
             $curr_player = $this->getActivePlayerId();
-            self:: DbQuery( "UPDATE player SET player_score = 15 WHERE (player_id) IN ('$curr_player')"); // Give player ridiculous # of points TODO: better implementation method??
+            self:: DbQuery( "UPDATE player SET player_score = $points_to_win WHERE (player_id) IN ('$curr_player')"); // Give player ridiculous # of points TODO: better implementation method??
             // Notify update scores
             $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
-            self::notifyAllPlayers( "newScores", "", array(
+            self::notifyAllPlayers( "newScores", clienttranslate('${player_name} has created a pattern of 5 wilds and achieved an instant win!'), array(
+                "player_name" => $this->getActivePlayerName(),
                 "scores" => $newScores
             ) );
             $this->gamestate->nextState('endGame');

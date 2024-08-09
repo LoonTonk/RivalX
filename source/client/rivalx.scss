@@ -27,7 +27,6 @@
     // Position relative to the board, not affected by other elements.
     position: absolute;
     // Placeholder for validating the positions.
-	background-color: rgb(255, 255, 255);
 	z-index: 0;
 }
 .scoretile {  
@@ -49,6 +48,18 @@
 .tokencolor_E6194B { background-position: -112px 0px; } // Red token
 .tokencolor_3CB44B { background-position: -168px 0px; } // Green token
 .tokencolor_FFE119 { background-position: -224px 0px; } // Yellow token
+
+.lastPlayed {
+	pointer-events: none;
+	width: 45px;
+	height: 45px;
+	position: absolute;
+	background-image: url('img/rivalxlastPlayed.png');
+}
+.lastPlayedcolor_4363D8 { background-position: 0px 0px; } // Blue lastPlayed
+.lastPlayedcolor_E6194B { background-position: -45px 0px; } // Red lastPlayed
+.lastPlayedcolor_3CB44B { background-position: -90px 0px; } // Green lastPlayed
+.lastPlayedcolor_FFE119 { background-position: -135px 0px; } // Yellow lastPlayed
 
 .selectable {
 	animation: selectable-token-animation 1s ease-in-out infinite alternate-reverse;
@@ -103,9 +114,9 @@
 	transition: opacity 1s ease-in-out;
 }
 .patterncolor_4363D8 { --y-pos: 0px; }
-.patterncolor_E6194B { --y-pos: 330px; }
-.patterncolor_3CB44B { --y-pos: 660px; }
-.patterncolor_FFE119 { --y-pos: 990px; }
+.patterncolor_E6194B { --y-pos: -330px; }
+.patterncolor_3CB44B { --y-pos: -660px; }
+.patterncolor_FFE119 { --y-pos: -990px; }
 .patterntype_row, .patterntype_col {
 	height: 330px;
 	width: 74px;
@@ -125,7 +136,7 @@
 	width: 330px;
 }
 .flash {
-    animation: flash 3s ease-in-out;
+    animation: flash 2s ease-in-out;
 }
 @keyframes flash {
     0% { opacity: 1; }
@@ -138,20 +149,17 @@
 }
 
 .fade-out {
-    animation: fadeOut 3s forwards;
+    animation: fadeOut 2s forwards;
 }
-.lastPlayed {
-}
-
 
 .possibleMove {
-    background-color: rgba(255, 255, 255, 0.021);
+    background-color: rgb(255, 255, 255);
     cursor: pointer;
     transition: 100ms;
 }
 
 .possibleMove:hover {
-    background-color: rgba(255, 255, 255, 0.3);
+    background-color:rgb(230,230,230);
 }
 /* .selectable::before {
 	animation: selectable-token-animation 1s ease-in-out infinite alternate-reverse;

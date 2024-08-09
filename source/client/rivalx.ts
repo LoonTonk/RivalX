@@ -71,11 +71,13 @@ class RivalX extends Gamegui
 				let square = gamedatas.board[i];
 		
 				if( square !== undefined && square.player != -1 ) { // If square is defined and has a player
-					this.addTokenOnBoard( square.x, square.y, square.player, square.selectable == 1, square.lastPlayed == 1 ); //Adds wild token if player id is 1-5
+					this.addTokenOnBoard( square.x, square.y, square.player, square.selectable == 1); //Adds wild token if player id is 1-5
 				}
 				if (square !== undefined && square.player_tile != -1) {
-					console.log("square is " + square + " square.player_tile is " + square.player_tile);
 					this.addTileOnBoard(square.x, square.y, square.player_tile);
+				}
+				if (square !== undefined && square.lastPlayed > 1) {
+					this.addLastPlayedToBoard(square.x, square.y, square.lastPlayed);
 				}
 			}
 		dojo.query( '.square' ).connect( 'onclick', this, 'onplaceToken' );
@@ -99,16 +101,16 @@ class RivalX extends Gamegui
 		switch( stateName )
 		{
 		case 'wildPlacement':
-			this.updatePossibleMoves( args.args!.possibleMoves );
+			this.updatePossibleMoves( args.args!.possibleMoves, 'wildPlacement' );
 			break;
 		case 'playerTurn':
 			this.clearSelectable();
 			this.clearPatterns();
-			this.updatePossibleMoves( args.args!.possibleMoves );
+			this.updatePossibleMoves( args.args!.possibleMoves, 'playerTurn' );
 			break;
 		case 'repositionWilds':
 			this.wildsPossibleMoves = args.args!.possibleMoves;
-			this.updatePossibleMoves([]);
+			this.updatePossibleMoves([], 'repositionWild');
 			break;
 		} 
 	}
@@ -167,10 +169,24 @@ class RivalX extends Gamegui
 	/** Removes the 'possibleMove' class from all elements. */
 	clearPossibleMoves() {
 		document.querySelectorAll('.possibleMove').forEach(element => {
+			this.removeTooltip(element.id);
 			element.classList.remove('possibleMove');
 		});
 	}
 
+	addLastPlayedToBoard(x: number, y: number, lastPlayed: number) {
+		const color = this.gamedatas.players[lastPlayed]!.color;
+		document.querySelectorAll(`.lastPlayedcolor_${color}`).forEach(element => {
+			console.log(`destroying element with this color: ${color}`)
+			dojo.destroy(element);
+		});
+		dojo.place( this.format_block( 'jstpl_lastPlayed', {
+			color: color,
+			x_y: `${x}_${y}`
+		} ) , 'board' );
+		this.placeOnObject( `lastPlayed_${x}_${y}`, `square_${x}_${y}` );
+		this.addTooltip(`lastPlayed_${x}_${y}`, _(`${this.gamedatas.players[lastPlayed]!.name}'s last move was here`), '');
+	}
 /* 	updateSelectedToken( x: number, y: number) {
 		this.clearSelectedToken();
 		if (x != 0) {
@@ -183,10 +199,9 @@ class RivalX extends Gamegui
 	} */
 
 	/** Updates the squares on the board matching the possible moves. */
-	updatePossibleMoves( possibleMoves: boolean[][] )
+	updatePossibleMoves( possibleMoves: boolean[][], gameState: string )
 	{
 		this.clearPossibleMoves();
-
 		for( var x in possibleMoves )
 		{
 			for( var y in possibleMoves[ x ] )
@@ -197,12 +212,25 @@ class RivalX extends Gamegui
 				square.classList.add('possibleMove');
 			}
 		}
-
-		this.addTooltipToClass( 'possibleMove', '', _('Place a token here') );
+		switch(gameState) {
+			case ('wildPlacement'):
+				this.addTooltipToClass( 'possibleMove', '', _('Place a wild here') );
+				break;
+			case ('playerTurn'):
+				this.addTooltipToClass( 'possibleMove', '', _('Place your token here') );
+				break;
+			case ('moveWild'):
+				this.addTooltipToClass( 'possibleMove', '', _('Move the selected wild here') );
+				break;
+			case ('repositionWild'):
+				break;
+			default:
+				throw new Error("when trying to update possible moves it was not in one of the specified states for adding tooltips")
+		}
 	}
 
 	/** Adds a token matching the given player to the board at the specified location. */
-	addTokenOnBoard( x: number, y: number, player_id: number, selectable: boolean, lastPlayed: boolean )
+	addTokenOnBoard( x: number, y: number, player_id: number, selectable: boolean )
 	{
 		if (this.isWild(player_id)) {
 			dojo.place( this.format_block( 'jstpl_token', { // Player is placing a wild token, color should be 0 instead of player color
@@ -210,13 +238,8 @@ class RivalX extends Gamegui
 				x_y: `${x}_${y}`
 			} ) , 'board' );
 			$(`token_${x}_${y}`)?.classList.add(`wild_${player_id}`);
-			if (lastPlayed) {
-				// Remove lastPlayed from the previous token, add it to the new one TODO: change how lastPlayed works, if at all
-				document.querySelectorAll('.tokencolor_0').forEach(element => {
-					element.classList.remove('lastPlayed');
-				});
-				$(`token_${x}_${y}`)?.classList.add('lastPlayed');
-			}
+			player_id = this.getCurrentPlayerId();
+			this.addTooltip( `token_${x}_${y}`, _('This is a wild token'), '');
 		} else { // it's a player token
 			let player = this.gamedatas.players[ player_id ];
 			if (!player) {
@@ -226,13 +249,7 @@ class RivalX extends Gamegui
 				color: player.color,
 				x_y: `${x}_${y}`
 			} ) , 'board' );
-			if (lastPlayed) {
-				// Remove lastPlayed from the previous token, add it to the new one
-				document.querySelectorAll(`.tokencolor_${player.color}`).forEach(element => {
-					element.classList.remove('lastPlayed');
-				});
-				$(`token_${x}_${y}`)?.classList.add('lastPlayed');
-			}
+			this.addTooltip( `token_${x}_${y}`, _('This is a player token'), ''); // TODO: change to be ****DYNAMIC**** and say whose token it is
 		}
 		dojo.connect( $(`token_${x}_${y}`), 'onclick', this, 'onselectToken' );
 		if (selectable) {
@@ -242,12 +259,8 @@ class RivalX extends Gamegui
 			}
 			dojo.place("<div class='selectable'></div>", selectable_token );
 		}
-		if (!this.isWild(player_id)) {
-			this.placeOnObject( `token_${x}_${y}`, `overall_player_board_${player_id}` );
-			this.slideToObject( `token_${x}_${y}`, `square_${x}_${y}` ).play();
-		} else {
-			this.placeOnObject( `token_${x}_${y}`, `square_${x}_${y}` );
-		}
+		this.placeOnObject( `token_${x}_${y}`, `overall_player_board_${player_id}` );
+		this.slideToObject( `token_${x}_${y}`, `square_${x}_${y}` ).play();
 	}
 
 	/** Adds a tile matching the given player to the board at the specified location. */
@@ -446,7 +459,7 @@ class RivalX extends Gamegui
 		setTimeout(() => {
 			patternElement.classList.remove('flash'); // Remove flash effect
 			patternElement.classList.add('fade-out'); // Start fade out
-		}, 3000); // Time to match the flash animation duration
+		}, 2000); // Time to match the flash animation duration
 	}
 
 	// Returns true if id is a wild
@@ -477,6 +490,11 @@ class RivalX extends Gamegui
 		}
 		// Check that this action is possible at this moment (shows error dialog if not possible)
 		if( this.checkAction( 'placeToken', true ) ) {
+			// Remove lastPlayed from the previous token, add it to the new one
+			if (x === undefined || y === undefined) {
+				throw new Error ("x or y was undefined when trying to get coordinates of square clicked on");
+			}
+			this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getActivePlayerId());
 			this.ajaxcall( `/${this.game_name}/${this.game_name}/placeToken.html`, {
 				x, y, lock: true
 			}, this, function() {} );
@@ -484,6 +502,11 @@ class RivalX extends Gamegui
 			const selected = document.querySelector('.selected');
 			if (selected !== null) { // There is a selected token
 				if (square.classList.contains('possibleMove')) {
+					// Remove lastPlayed from the previous token, add it to the new one
+					if (x === undefined || y === undefined) {
+						throw new Error ("x or y was undefined when trying to get coordinates of square clicked on");
+					}
+					this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getActivePlayerId());
 					let [_square_, old_x, old_y] = selected.closest('[id]')!.id.split('_');
 					this.ajaxcall( `/${this.game_name}/${this.game_name}/moveWild.html`, {
 						old_x: old_x, old_y: old_y, new_x: x, new_y: y, lock: true
@@ -540,7 +563,7 @@ class RivalX extends Gamegui
 							if (possibleMoves === undefined) {
 								throw new Error("when trying to get possible moves index was undefined");
 							}
-							this.updatePossibleMoves(possibleMoves);
+							this.updatePossibleMoves(possibleMoves, 'moveWild');
 							break;
 						}
 					}
@@ -615,47 +638,27 @@ class RivalX extends Gamegui
 
 		dojo.subscribe( 'playToken', this, "notif_playToken" );
 		this.notifqueue.setSynchronous( 'playToken', 300 );
-/*		dojo.subscribe( 'markSelectableTokens', this, "notif_markSelectableTokens" );
- 		this.notifqueue.setSynchronous( 'markSelectableTokens', 300 );
-		dojo.subscribe( 'newScores', this, "notif_newScores" );
-		this.notifqueue.setSynchronous( 'newScores', 500 );
-		dojo.subscribe( 'removeTokens', this, "notif_removeTokens" );
-		this.notifqueue.setSynchronous( 'removeTokens', 300 );
-		dojo.subscribe( 'addScoreTiles', this, "notif_addScoreTiles" );
-		this.notifqueue.setSynchronous( 'addScoreTiles', 300 ); */
 		dojo.subscribe( 'moveWild', this, "notif_moveWild" );
 		this.notifqueue.setSynchronous( 'moveWild', 300 );
+		dojo.subscribe( 'newScores', this, "notif_newScores" );
+		this.notifqueue.setSynchronous( 'newScores', 300 );
 		dojo.subscribe( 'scorePattern', this, "notif_scorePattern" );
 		this.notifqueue.setSynchronous( 'scorePattern', 500 );
-		// TODO: here, associate your game notifications with local methods
-		
 		// With base Gamegui class...
 		// dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-
 		// With GameguiCookbook::Common class...
 		// this.subscribeNotif( 'cardPlayed', this.notif_cardPlayed ); // Adds type safety to the subscription
 	}
 
 	notif_playToken( notif: NotifAs<'playToken'> )
 	{
-		this.addTokenOnBoard( notif.args.x, notif.args.y, notif.args.player_id, false, true );
+		this.addTokenOnBoard( notif.args.x, notif.args.y, notif.args.player_id, false);
 		const id = notif.args.player_id;
 		if (id > RivalX.MAX_WILDS && id !== undefined) {
 			const tokenCounter = this.remainingTokensCounter[id];
 			tokenCounter!.incValue(-1);
 		}
 	}
-
-/* 	notif_markSelectableTokens( notif: NotifAs<'markSelectableTokens'> )
-	{
-		notif.args.forEach((token_pos) => {
-			const token = $<HTMLElement>( `token_${token_pos.x}_${token_pos.y}` );
-			if (token === null) {
-				throw new Error("When trying to mark selectable tokens a token was null");
-			}
-			dojo.place("<div class='selectable'></div>", token );
-		  });
-	} */
 
 	notif_newScores( notif: NotifAs<'newScores'> )
 	{
@@ -668,43 +671,8 @@ class RivalX extends Gamegui
 		}
 	}
 
-/* 	notif_removeTokens( notif: NotifAs<'removeTokens'> )
-	{
-		console.log("args in notif_removeTokens:");
-		console.log(notif.args);
-		const tokensToRemove = Array.from(notif.args['playerTokens']);
-		const id = notif.args['player_id'];
-		console.log(tokensToRemove);
-		tokensToRemove.forEach((token_pos) => {
-			const token = $<HTMLElement>( `token_${token_pos.x}_${token_pos.y}` );
-			if (token === null) {
-				throw new Error("Error: token does not exist in notif_removeTokens");
-			}
-			dojo.destroy(token);
-			this.remainingTokensCounter[parseInt(id)]!.incValue(1);
-		  });		
-	} */
-
-/* 	notif_addScoreTiles( notif: NotifAs<'addScoreTiles'> )
-	{
-		notif.args.forEach((scoretile_pos) => {
-			const scoretile = $<HTMLElement>( `scoretile_${scoretile_pos.x}_${scoretile_pos.y}` );
-			if (scoretile !== null) { // there is already a score tile here, should remove it at the end
-				scoretile.classList.add('toDestroy');
-				scoretile.id += '_toDestroy'; // change the id so we don't have multiple elements with the same id
-			}
-			this.addTileOnBoard(scoretile_pos.x, scoretile_pos.y, scoretile_pos.player_id);
-		  });
-
-		  // Clear all scoretiles with toDestroy tag
-		  document.querySelectorAll('.toDestroy').forEach(element => {
-			dojo.destroy(element);
-		});
-	} */
-
 	notif_moveWild( notif: NotifAs<'moveWild'> )
 	{
-		console.log(notif.args);
 		this.slideToObject( `token_${notif.args.old_x}_${notif.args.old_y}`, `square_${notif.args.new_x}_${notif.args.new_y}` ).play();
 		const token = $<HTMLElement>( `token_${notif.args.old_x}_${notif.args.old_y}` ); // Make sure to change token id as well
 		if (token === null) {
@@ -714,25 +682,32 @@ class RivalX extends Gamegui
 		dojo.empty(token);
 	}
 
-	notif_scorePattern( notif: NotifAs<'scorePattern'> ) {
-		console.log('notif_scorePattern has been called');
-		console.log(notif.args);
-		console.log(notif.args.patternsToDisplay);
-		// Add patterns to board
-		notif.args.patternsToDisplay.patterns.forEach((pattern) => {
-			this.addPatternOnBoard(pattern, notif.args.patternsToDisplay.x, notif.args.patternsToDisplay.y, notif.args.patternsToDisplay.player_id);
+	
+	async notif_scorePattern( notif: NotifAs<'scorePattern'> ) {
+		// Mark selectable tokens
+		notif.args.selectableTokens.forEach((token_pos) => {
+			const token = $<HTMLElement>( `token_${token_pos.x}_${token_pos.y}` );
+			if (token === null) {
+				throw new Error("When trying to mark selectable tokens a token was null");
+			}
+			dojo.place("<div class='selectable'></div>", token );
 		});
+		// Add patterns to board
+		// Helper function to create a delay
+		const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+		for (const pattern of notif.args.patternsToDisplay.patterns) {
+			this.addPatternOnBoard(pattern, notif.args.patternsToDisplay.x, notif.args.patternsToDisplay.y, notif.args.patternsToDisplay.player_id);
+			await delay(2000);
+		};
 
 		// Remove tokens
 		// TODO: play animation before removing tokens, send them back to player?
-		console.log("args in notif_removeTokens:");
-		console.log(notif.args);
 		notif.args.tokensToRemove.forEach((token_pos) => {
 			const token = $<HTMLElement>( `token_${token_pos.x}_${token_pos.y}` );
 			if (token === null) {
 				throw new Error("Error: token does not exist in notif_removeTokens");
 			}
-			dojo.destroy(token);
+			this.slideToObjectAndDestroy(token, `overall_player_board_${token_pos.player_id}`);
 			this.remainingTokensCounter[parseInt(token_pos.player_id)]!.incValue(1);
 		});	
 
@@ -749,17 +724,51 @@ class RivalX extends Gamegui
 		document.querySelectorAll('.toDestroy').forEach(element => {
 		dojo.destroy(element);
 		});
-
-		// Mark selectable tokens
-		notif.args.selectableTokens.forEach((token_pos) => {
-			const token = $<HTMLElement>( `token_${token_pos.x}_${token_pos.y}` );
-			if (token === null) {
-				throw new Error("When trying to mark selectable tokens a token was null");
-			}
-			dojo.place("<div class='selectable'></div>", token );
-		});
 	}
 
+/* 	notif_markSelectableTokens( notif: NotifAs<'markSelectableTokens'> )
+{
+	notif.args.forEach((token_pos) => {
+		const token = $<HTMLElement>( `token_${token_pos.x}_${token_pos.y}` );
+		if (token === null) {
+			throw new Error("When trying to mark selectable tokens a token was null");
+		}
+		dojo.place("<div class='selectable'></div>", token );
+		});
+} 
+ 	notif_removeTokens( notif: NotifAs<'removeTokens'> )
+{
+	console.log("args in notif_removeTokens:");
+	console.log(notif.args);
+	const tokensToRemove = Array.from(notif.args['playerTokens']);
+	const id = notif.args['player_id'];
+	console.log(tokensToRemove);
+	tokensToRemove.forEach((token_pos) => {
+		const token = $<HTMLElement>( `token_${token_pos.x}_${token_pos.y}` );
+		if (token === null) {
+			throw new Error("Error: token does not exist in notif_removeTokens");
+		}
+		dojo.destroy(token);
+		this.remainingTokensCounter[parseInt(id)]!.incValue(1);
+		});		
+} */
+
+/* 	notif_addScoreTiles( notif: NotifAs<'addScoreTiles'> )
+{
+	notif.args.forEach((scoretile_pos) => {
+		const scoretile = $<HTMLElement>( `scoretile_${scoretile_pos.x}_${scoretile_pos.y}` );
+		if (scoretile !== null) { // there is already a score tile here, should remove it at the end
+			scoretile.classList.add('toDestroy');
+			scoretile.id += '_toDestroy'; // change the id so we don't have multiple elements with the same id
+		}
+		this.addTileOnBoard(scoretile_pos.x, scoretile_pos.y, scoretile_pos.player_id);
+		});
+
+		// Clear all scoretiles with toDestroy tag
+		document.querySelectorAll('.toDestroy').forEach(element => {
+		dojo.destroy(element);
+	});
+} */
 /* 
 	notif_selectWild( notif: NotifAs<'selectWild'> )
 	{

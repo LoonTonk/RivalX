@@ -24,7 +24,6 @@
   width: 62px;
   height: 62px;
   position: absolute;
-  background-color: rgb(255, 255, 255);
   z-index: 0;
 }
 
@@ -80,6 +79,30 @@
 
 .tokencolor_FFE119 {
   background-position: -224px 0px;
+}
+
+.lastPlayed {
+  pointer-events: none;
+  width: 45px;
+  height: 45px;
+  position: absolute;
+  background-image: url("img/rivalxlastPlayed.png");
+}
+
+.lastPlayedcolor_4363D8 {
+  background-position: 0px 0px;
+}
+
+.lastPlayedcolor_E6194B {
+  background-position: -45px 0px;
+}
+
+.lastPlayedcolor_3CB44B {
+  background-position: -90px 0px;
+}
+
+.lastPlayedcolor_FFE119 {
+  background-position: -135px 0px;
 }
 
 .selectable {
@@ -142,15 +165,15 @@
 }
 
 .patterncolor_E6194B {
-  --y-pos: 330px;
+  --y-pos: -330px;
 }
 
 .patterncolor_3CB44B {
-  --y-pos: 660px;
+  --y-pos: -660px;
 }
 
 .patterncolor_FFE119 {
-  --y-pos: 990px;
+  --y-pos: -990px;
 }
 
 .patterntype_row, .patterntype_col {
@@ -182,7 +205,7 @@
 }
 
 .flash {
-  animation: flash 3s ease-in-out;
+  animation: flash 2s ease-in-out;
 }
 
 @keyframes flash {
@@ -205,17 +228,17 @@
   }
 }
 .fade-out {
-  animation: fadeOut 3s forwards;
+  animation: fadeOut 2s forwards;
 }
 
 .possibleMove {
-  background-color: rgba(255, 255, 255, 0.021);
+  background-color: rgb(255, 255, 255);
   cursor: pointer;
   transition: 100ms;
 }
 
 .possibleMove:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: rgb(230, 230, 230);
 }
 
 /* .selectable::before {
