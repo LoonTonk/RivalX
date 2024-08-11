@@ -16,9 +16,9 @@
 
 	// Game Externals and basic information
 	"game_name": "Rival X",
-	"publisher": "My Publishing Company",
-	"publisher_website": "http://www.mypublishingcompany.com/",
-	"publisher_bgg_id": 1234,
+	"publisher": "Cryptozoic Entertainment",
+	"publisher_website": "https://cryptozoic.com/",
+	"publisher_bgg_id": 12024,
 	"bgg_id": 131387,
 
 	// Players
@@ -30,10 +30,10 @@
 	"disable_player_order_swap_on_rematch": false,
 
 	// Game Clock
-	"estimated_duration": 15,
+	"estimated_duration": 25,
 	"fast_additional_time": 30,
-	"medium_additional_time": 40,
-	"slow_additional_time": 50,
+	"medium_additional_time": 45,
+	"slow_additional_time": 60,
 
 	// Game Rankings
 	"tie_breaker_description": "",

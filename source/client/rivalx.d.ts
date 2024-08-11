@@ -13,7 +13,7 @@ declare global {
 
 	/** @gameSpecific Add game specific notifications / arguments here. See {@link NotifTypes} for more information. */
 	interface NotifTypes {
-		'playToken': { x: number, y: number, player_id: number }; // NOTE: most of these are calling for numbers, but SQL queries return strings so these are actually strings, not numbers
+		'playToken': { x: number, y: number, player_id: number, lastPlayed: number }; // NOTE: most of these are calling for numbers, but SQL queries return strings so these are actually strings, not numbers
 		//'markSelectableTokens': { x: number, y: number }[];
 		'newScores': { scores: Record<number, number> };
 		//'removeTokens': {playerTokens: { x: number, y: number}[], player_id: string};

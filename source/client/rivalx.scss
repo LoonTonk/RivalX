@@ -12,7 +12,7 @@
     // Setup Image
     width: 522px;
     height: 522px;
-    background-image: url('img/rivalxboard.png'); //TODO: probably should make the board look a little better
+    background-image: url('img/rivalxboard.png'); 
     // Center the board
     margin: auto;
     left: 0; top: 0; right: 0; bottom: 0;
@@ -53,6 +53,7 @@
 	pointer-events: none;
 	width: 45px;
 	height: 45px;
+	transform: scale(0.9);
 	position: absolute;
 	background-image: url('img/rivalxlastPlayed.png');
 }

@@ -85,6 +85,7 @@
   pointer-events: none;
   width: 45px;
   height: 45px;
+  transform: scale(0.9);
   position: absolute;
   background-image: url("img/rivalxlastPlayed.png");
 }

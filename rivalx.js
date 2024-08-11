@@ -141,9 +141,18 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             });
         };
         RivalX.prototype.clearSelectable = function () {
+            var _this = this;
             document.querySelectorAll('.selectable').forEach(function (element) {
-                dojo.destroy(element);
+                var _a = element.closest('.token').id.split('_'), _token_ = _a[0], x = _a[1], y = _a[2];
+                if (x === undefined || y === undefined) {
+                    throw new Error("When trying to get x and y from id of selectable token it was undefined");
+                }
+                _this.removeSelectable(parseInt(x), parseInt(y));
             });
+        };
+        RivalX.prototype.removeSelectable = function (x, y) {
+            dojo.empty("token_".concat(x, "_").concat(y));
+            this.addTooltip("token_".concat(x, "_").concat(y), _('This is a wild token'), '');
         };
         RivalX.prototype.clearPossibleMoves = function () {
             var _this = this;
@@ -163,6 +172,15 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 x_y: "".concat(x, "_").concat(y)
             }), 'board');
             this.placeOnObject("lastPlayed_".concat(x, "_").concat(y), "square_".concat(x, "_").concat(y));
+            this.addTooltip("lastPlayed_".concat(x, "_").concat(y), _("".concat(this.gamedatas.players[lastPlayed].name, "'s last move was here")), '');
+        };
+        RivalX.prototype.markSelectableToken = function (x, y) {
+            var selectable_token = $("token_".concat(x, "_").concat(y));
+            if (selectable_token === null) {
+                throw new Error("when trying to get selectable token it was null");
+            }
+            dojo.place("<div class='selectable'></div>", selectable_token);
+            this.addTooltip("token_".concat(x, "_").concat(y), '', _('Select this wild to move it'));
         };
         RivalX.prototype.updatePossibleMoves = function (possibleMoves, gameState) {
             this.clearPossibleMoves();
@@ -214,11 +232,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             }
             dojo.connect($("token_".concat(x, "_").concat(y)), 'onclick', this, 'onselectToken');
             if (selectable) {
-                var selectable_token = $("token_".concat(x, "_").concat(y));
-                if (selectable_token === null) {
-                    throw new Error("when trying to get selectable token it was null");
-                }
-                dojo.place("<div class='selectable'></div>", selectable_token);
+                this.markSelectableToken(x, y);
             }
             this.placeOnObject("token_".concat(x, "_").concat(y), "overall_player_board_".concat(player_id));
             this.slideToObject("token_".concat(x, "_").concat(y), "square_".concat(x, "_").concat(y)).play();
@@ -380,7 +394,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                             x_pos += -1;
                             y_pos += 1;
                             break;
-                        case ('C'):
+                        case ('CE'):
                             x_pos += 0;
                             y_pos += 0;
                             break;
@@ -435,7 +449,8 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 if (x === undefined || y === undefined) {
                     throw new Error("x or y was undefined when trying to get coordinates of square clicked on");
                 }
-                this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getActivePlayerId());
+                console.log("Current player id is:" + this.getCurrentPlayerId());
+                this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getCurrentPlayerId());
                 this.ajaxcall("/".concat(this.game_name, "/").concat(this.game_name, "/placeToken.html"), {
                     x: x,
                     y: y,
@@ -449,7 +464,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                         if (x === undefined || y === undefined) {
                             throw new Error("x or y was undefined when trying to get coordinates of square clicked on");
                         }
-                        this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getActivePlayerId());
+                        this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getCurrentPlayerId());
                         var _b = selected.closest('[id]').id.split('_'), _square_1 = _b[0], old_x = _b[1], old_y = _b[2];
                         this.ajaxcall("/".concat(this.game_name, "/").concat(this.game_name, "/moveWild.html"), {
                             old_x: old_x, old_y: old_y, new_x: x, new_y: y, lock: true
@@ -544,6 +559,10 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 var tokenCounter = this.remainingTokensCounter[id];
                 tokenCounter.incValue(-1);
             }
+            if (notif.args.lastPlayed !== this.getCurrentPlayerId()) {
+                console.log("notif.args.lastPlayed: " + notif.args.lastPlayed);
+                this.addLastPlayedToBoard(notif.args.x, notif.args.y, notif.args.lastPlayed);
+            }
         };
         RivalX.prototype.notif_newScores = function (notif) {
             for (var player_id in notif.args.scores) {
@@ -560,7 +579,9 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 throw new Error("When moving a wild somehow a token reference became null");
             }
             token.id = "token_".concat(notif.args.new_x, "_").concat(notif.args.new_y);
-            dojo.empty(token);
+            this.removeSelectable(notif.args.new_x, notif.args.new_y);
+            console.log("add last played to board current player id: " + this.getActivePlayerId());
+            this.addLastPlayedToBoard(notif.args.new_x, notif.args.new_y, this.getActivePlayerId());
         };
         RivalX.prototype.notif_scorePattern = function (notif) {
             return __awaiter(this, void 0, void 0, function () {
@@ -570,11 +591,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                     switch (_b.label) {
                         case 0:
                             notif.args.selectableTokens.forEach(function (token_pos) {
-                                var token = $("token_".concat(token_pos.x, "_").concat(token_pos.y));
-                                if (token === null) {
-                                    throw new Error("When trying to mark selectable tokens a token was null");
-                                }
-                                dojo.place("<div class='selectable'></div>", token);
+                                _this.markSelectableToken(token_pos.x, token_pos.y);
                             });
                             delay = function (ms) { return new Promise(function (resolve) { return setTimeout(resolve, ms); }); };
                             _i = 0, _a = notif.args.patternsToDisplay.patterns;

@@ -90,7 +90,6 @@ class RivalX extends Table
         //$this->initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
         //$this->initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
-        // TODO: setup the initial game situation here
         $sql = "INSERT INTO board (board_x,board_y,board_player,board_player_tile,board_selectable,board_lastPlayed) VALUES ";
         $sql_values = array();
         for( $x=1; $x<=8; $x++ )
@@ -129,7 +128,6 @@ class RivalX extends Table
         $sql = "SELECT player_id id, player_score score FROM player ";
         $result['players'] = $this->getCollectionFromDb( $sql );
   
-        // TODO: Gather all information about current game situation (visible by player $current_player_id).
         $sql = "SELECT board_x x, board_y y, board_player player, board_player_tile player_tile, board_selectable selectable, board_lastPlayed lastPlayed
         FROM board";
         $result['board'] = self::getObjectListFromDB( $sql );
@@ -326,7 +324,7 @@ class RivalX extends Table
             'pattern_name' => $patternName,
         ) );
 
-        // Notify update scores TODO: notify what the change in scores is
+        // Notify update scores
         $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
         $currPlayerPointGain = $newScores[$player_id] - $oldScores[$player_id];
         $scoreChangeMessage = $this->getPlayerNameById($player_id) . ' has scored ' . $currPlayerPointGain . ' point' ;
@@ -582,7 +580,7 @@ class RivalX extends Table
         }
     }
 
-    // TODO: returns true if all players have tokens, false if any player has run out of tokens
+    // returns true if all players have tokens, false if any player has run out of tokens
     function allPlayersHaveTokens() {
         $player_tokens_count = $this->getObjectListFromDB( "SELECT player_id player, player_tokens_left tokensLeft, player_score score FROM player" );
         foreach($player_tokens_count as $player_token_count) {
@@ -648,7 +646,8 @@ class RivalX extends Table
             'player_name' => self::getActivePlayerName(),
             'wild' => false,
             'x' => $x,
-            'y' => $y
+            'y' => $y,
+            'lastPlayed' => self::getActivePlayerId()
         ) );
 
         $this->gamestate->nextState( 'placeToken' );
@@ -665,12 +664,13 @@ class RivalX extends Table
         $numWilds = self::getNumWilds() + 1;
         $max_wilds = self::MAX_WILDS;
         self::DbQuery( "UPDATE board SET board_player = $numWilds WHERE (board_x, board_y) IN (($x,$y))" );
-        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a wild token at (${x},${y}), '.$numWilds.'/5 placed' ), array(
+        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a wild token at (${x},${y}), '.$numWilds.'/'.$max_wilds.'placed' ), array(
             'player_id' => $numWilds,
             'player_name' => self::getActivePlayerName(),
             'x' => $x,
             'y' => $y,
-            'wild' => true
+            'wild' => true,
+            'lastPlayed' => self::getActivePlayerId()
         ) );
 
         if ($numWilds >= self::MAX_WILDS) {
@@ -791,7 +791,7 @@ class RivalX extends Table
         The action method of state X is called everytime the current game state is set to X.
     */
     
-    function stNextPlayer() { //TODO: add a LOT of checks
+    function stNextPlayer() {
         $board = self::getBoard();
         $patternTokens = self::getPatternTokens($board);
         $this->dump("patternTokens at stNextPlayer: ", $patternTokens);
@@ -799,7 +799,7 @@ class RivalX extends Table
             $this->dump("pattern Tokens ", $patternTokens);
             if (self::updateBoardOnPattern($patternTokens, $board)) {
                 self::activeNextPlayer();
-                $this->gamestate->nextState('nextTurn'); // TODO: might need to change to go to repositionWilds state instead of skipping it entirely?
+                $this->gamestate->nextState('nextTurn');
             } else {
                 if (self::checkForWin()) { // Check if any player has hit the required number of points
                     $this->gamestate->nextState('endGame'); 
