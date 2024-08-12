@@ -631,13 +631,24 @@ class RivalX extends Gamegui
 		console.log( 'notifications subscriptions setup' );
 
 		dojo.subscribe( 'playToken', this, "notif_playToken" );
-		this.notifqueue.setSynchronous( 'playToken', 300 );
+		this.notifqueue.setSynchronous( 'playToken', 500 );
 		dojo.subscribe( 'moveWild', this, "notif_moveWild" );
-		this.notifqueue.setSynchronous( 'moveWild', 300 );
+		this.notifqueue.setSynchronous( 'moveWild', 500 );
 		dojo.subscribe( 'newScores', this, "notif_newScores" );
 		this.notifqueue.setSynchronous( 'newScores', 300 );
 		dojo.subscribe( 'scorePattern', this, "notif_scorePattern" );
-		this.notifqueue.setSynchronous( 'scorePattern', 500 );
+		this.notifqueue.setSynchronous( 'scorePattern', 2000 ); // TODO: adjust timings to whatever works best
+		dojo.subscribe( 'removeTokens', this, "notif_removeTokens" );
+		this.notifqueue.setSynchronous( 'removeTokens', 500 );
+		dojo.subscribe( 'markSelectableTokens', this, "notif_markSelectableTokens" );
+		this.notifqueue.setSynchronous( 'markSelectableTokens', 200 );
+		dojo.subscribe( 'blockadeWin', this, "notif_blockadeWin" );
+		this.notifqueue.setSynchronous( 'blockadeWin', 500 );
+		dojo.subscribe( 'instantWin', this, "notif_instantWin" );
+		this.notifqueue.setSynchronous( 'instantWin', 500 );
+		dojo.subscribe( 'pointsWin', this, "notif_pointsWin" );
+		this.notifqueue.setSynchronous( 'pointsWin', 500 );
+		// [name: string]: any; // Uncomment to remove type safety on notification names and arguments
 		// With base Gamegui class...
 		// dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
 		// With GameguiCookbook::Common class...
@@ -682,23 +693,10 @@ class RivalX extends Gamegui
 		this.addLastPlayedToBoard(notif.args.new_x, notif.args.new_y, this.getActivePlayerId());
 	}
 
-	
-	async notif_scorePattern( notif: NotifAs<'scorePattern'> ) {
-		// Mark selectable tokens
-		notif.args.selectableTokens.forEach((token_pos) => {
-			this.markSelectableToken(token_pos.x, token_pos.y);
-		});
-		// Add patterns to board
-		// Helper function to create a delay
-		const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-		for (const pattern of notif.args.patternsToDisplay.patterns) {
-			this.addPatternOnBoard(pattern, notif.args.patternsToDisplay.x, notif.args.patternsToDisplay.y, notif.args.patternsToDisplay.player_id);
-			await delay(2000);
-		};
-
+	notif_removeTokens(notif: NotifAs<'removeTokens'>) {
 		// Remove tokens
 		// TODO: play animation before removing tokens?
-		notif.args.tokensToRemove.forEach((token_pos) => {
+		notif.args.forEach((token_pos) => {
 			const token = $<HTMLElement>( `token_${token_pos.x}_${token_pos.y}` );
 			if (token === null) {
 				throw new Error("Error: token does not exist in notif_removeTokens");
@@ -708,7 +706,7 @@ class RivalX extends Gamegui
 		});	
 
 		// Add score tiles
-		notif.args.tokensToRemove.forEach((scoretile_pos) => {
+		notif.args.forEach((scoretile_pos) => {
 			const scoretile = $<HTMLElement>( `scoretile_${scoretile_pos.x}_${scoretile_pos.y}` );
 			if (scoretile !== null) { // there is already a score tile here, should remove it at the end
 				scoretile.classList.add('toDestroy');
@@ -720,6 +718,29 @@ class RivalX extends Gamegui
 		document.querySelectorAll('.toDestroy').forEach(element => {
 		dojo.destroy(element);
 		});
+	}
+
+	notif_markSelectableTokens(notif: NotifAs<'markSelectableTokens'>) {
+		notif.args.forEach((token_pos) => {
+			this.markSelectableToken(token_pos.x, token_pos.y);
+		});
+	}
+
+	// Add pattern to board
+	notif_scorePattern( notif: NotifAs<'scorePattern'> ) { // TODO: Fix these to always work with timings and the game ending, add more delay until the next turn, make a wild pattern more flashy
+		this.addPatternOnBoard(notif.args.patternName, notif.args.x, notif.args.y, notif.args.player_id);
+	}
+
+	notif_pointsWin() {
+		console.log("Win by points!");
+	}
+
+	notif_blockadeWin() {
+		console.log("blockade win!");
+	}
+
+	notif_instantWin() {
+		console.log("instant win!");
 	}
 
 	/*

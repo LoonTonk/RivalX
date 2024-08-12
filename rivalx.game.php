@@ -316,13 +316,42 @@ class RivalX extends Table
                     throw new feException( "When parsing pattern code did not match any known pattern: ".$patternCode );
             }
         }
-        self::notifyAllPlayers( 'scorePattern', clienttranslate('${player_name} has completed a ${pattern_name} pattern'), array( //TODO: list tiles the pattern was on?
-            'selectableTokens' => $wildTokens,
-            'tokensToRemove' => $tokensToRemove,
-            'patternsToDisplay' => array('x' => $centerToken['x'], 'y' => $centerToken['y'], 'patterns' => $patterns, 'player_id' => $player_id),
-            'player_name' => $this->getPlayerNameById($player_id),
-            'pattern_name' => $patternName,
-        ) );
+
+        self::notifyAllPlayers('markSelectableTokens', '', $wildTokens);
+
+        if ($patternName !== 'combination') {
+            self::notifyAllPlayers( 'scorePattern', clienttranslate('${player_name} has completed a ${pattern_name} pattern'), array( //TODO: list tiles the pattern was on?
+                'x' => $centerToken['x'],
+                'y' => $centerToken['y'],
+                'patternName' => $patterns[0],
+                'player_id' => $player_id,
+                'player_name' => $this->getPlayerNameById($player_id),
+                'pattern_name' => $patternName,
+            ) ); 
+        } else {
+            $count = 0;
+            foreach($patterns as $pattern) {
+                if ($count === 0) { // First iteration of loop
+                    self::notifyAllPlayers( 'scorePattern', clienttranslate('${player_name} has completed a ${pattern_name} pattern'), array( //TODO: list tiles the pattern was on?
+                        'x' => $centerToken['x'],
+                        'y' => $centerToken['y'],
+                        'patternName' => $pattern,
+                        'player_id' => $player_id,
+                        'player_name' => $this->getPlayerNameById($player_id),
+                        'pattern_name' => $patternName,
+                    ) );
+                } else {
+                    self::notifyAllPlayers( 'scorePattern', '', array( //TODO: list tiles the pattern was on?
+                        'x' => $centerToken['x'],
+                        'y' => $centerToken['y'],
+                        'patternName' => $pattern,
+                        'player_id' => $player_id,
+                    ) );
+                }
+            }
+        }
+
+        self::notifyAllPlayers('removeTokens', '', $tokensToRemove);
 
         // Notify update scores
         $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
@@ -644,7 +673,6 @@ class RivalX extends Table
         self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} plays a token at (${x}, ${y})' ), array(
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),
-            'wild' => false,
             'x' => $x,
             'y' => $y,
             'lastPlayed' => self::getActivePlayerId()
@@ -669,7 +697,6 @@ class RivalX extends Table
             'player_name' => self::getActivePlayerName(),
             'x' => $x,
             'y' => $y,
-            'wild' => true,
             'lastPlayed' => self::getActivePlayerId()
         ) );
 
@@ -702,8 +729,10 @@ class RivalX extends Table
             self:: DbQuery( "UPDATE player SET player_score = $points_to_win WHERE (player_id) IN ('$curr_player')"); // Give player ridiculous # of points TODO: better implementation method??
             // Notify update scores
             $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
-            self::notifyAllPlayers( "newScores", clienttranslate('${player_name} has created a pattern of 5 wilds and achieved an instant win!'), array(
+            self::notifyAllPlayers( "instantWin", clienttranslate('${player_name} has created a pattern of 5 wilds and achieved an instant win!'), array(
                 "player_name" => $this->getActivePlayerName(),
+            ) );
+            self::notifyAllPlayers( "newScores", '', array(
                 "scores" => $newScores
             ) );
             $this->gamestate->nextState('endGame');

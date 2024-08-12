@@ -20,11 +20,13 @@ declare global {
 		//'addScoreTiles': { x: number, y: number, player_id: number}[];
 		//'outlinePatterns': {x: number, y: number, patterns: string[]};
 		'moveWild': { old_x: number, old_y: number, new_x: number, new_y: number };
-		'scorePattern': {selectableTokens: { x: number, y: number }[], 
-						 tokensToRemove: { x: number, y: number, player_id: string}[],
-						 patternsToDisplay: {x: number, y: number, player_id: string, patterns: string[]}}; // TODO: should scores and scorePattern be in the same notif with a combined message?
+		'removeTokens': { x: number, y: number, player_id: string}[]; 
 		// [name: string]: any; // Uncomment to remove type safety on notification names and arguments
+		'markSelectableTokens': { x: number, y: number }[];
+		'scorePattern': {x: number, y: number, player_id: string, patternName: string};
 		'blockadeWin': {};
+		'instantWin': {};
+		'pointsWin': {};
 	}
 
 	/** @gameSpecific Add game specific gamedatas arguments here. See {@link Gamedatas} for more information. */
