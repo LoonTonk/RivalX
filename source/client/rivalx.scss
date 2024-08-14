@@ -36,8 +36,9 @@
     height: 62px; 
 	position: absolute; 
 	z-index: 1; 
+	pointer-events: none;
 }
-.tilecolor_4363D8 {   background-color: #A4C8F0 }
+.tilecolor_4363D8 {   background-color: #A4C8F0 } // TODO: change the colors ("it looks too much like a baby shower")
 .tilecolor_E6194B { background-color:#FF9AA2; }
 .tilecolor_3CB44B { background-color: #A1D99B; }
 .tilecolor_FFE119 { background-color: #FFF4B3; }
@@ -156,12 +157,23 @@
 .possibleMove {
     background-color: rgb(255, 255, 255);
     cursor: pointer;
-    transition: 100ms;
 }
-
-.possibleMove:hover {
-    background-color:rgb(230,230,230);
-}
+.square.possibleMove::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: rgba(0, 0, 0, 0.1); /* Subtle darkening */
+	mix-blend-mode: multiply;
+	opacity: 0;
+	transition: opacity 0.3s ease;
+	z-index: 10; /* Ensure it's on top */
+  }
+  .square.possibleMove:hover::before {
+	opacity: 1; /* Show on hover */
+  }
 /* .selectable::before {
 	animation: selectable-token-animation 1s ease-in-out infinite alternate-reverse;
 	background: url('img/rivalxselected.png') no-repeat;
