@@ -11,5 +11,86 @@
  * This file is enforced by schema file located at 'bga-ts-template/template/schema'. If you are using VS Code, this schema file will be linked to this file automatically if 'generate-vscode-files' is set to true in 'template.config.jsonc. Hover over any fields for more information.
  */
 {
-	"$schema": "../../node_modules/bga-ts-template/schema/stats.schema.json"
+	"$schema": "../../node_modules/bga-ts-template/schema/stats.schema.json",
+	"table": {
+		"victory_type": {
+		"id": 10,
+		"name": "Victory Type",
+		"type": "int"
+		}
+	},
+	"value_labels": {
+		"10": [
+		"Points Win",
+		"Blockade Win",
+		"Wild Pattern Win"
+		]
+	},
+	"player": {
+		"victory_type_player": {
+			"id": 10,
+			"name": "Victory Type",
+			"type": "int"
+		},
+		"tokens_placed": {
+			"id": 11,
+			"name": "Number of tokens placed",
+			"type": "int"
+		},
+		"scoretiles_made": {
+			"id": 12,
+			"name": "Total number of scoretiles made",
+			"type": "int"
+		},
+		"scoretiles_lost": {
+			"id": 13,
+			"name": "Total number of scoretiles lost",
+			"type": "int"
+		},
+		"scoretiles_taken": {
+			"id": 14,
+			"name": "Total number of scoretiles taken from others",
+			"type": "int"
+		},
+		"rowPatterns_made": {
+			"id": 15,
+			"name": "Total number of row patterns made",
+			"type": "int"
+		},
+		"colPatterns_made": {
+			"id": 16,
+			"name": "Total number of column patterns made",
+			"type": "int"
+		},
+		"diagPatterns_made": {
+			"id": 17,
+			"name": "Total number of diagonal patterns made",
+			"type": "int"
+		},
+		"plusPatterns_made": {
+			"id": 18,
+			"name": "Total number of plus patterns made",
+			"type": "int"
+		},
+		"XPatterns_made": {
+			"id": 19,
+			"name": "Total number of X patterns made",
+			"type": "int"
+		},
+		"combinationPatterns_made": {
+			"id": 20,
+			"name": "Total number of combination patterns made",
+			"type": "int"
+		},
+		"wilds_moved": {
+			"id": 21,
+			"name": "Total number of wilds repositioned",
+			"type": "int"
+		},
+		"wilds_used": {
+			"id": 22,
+			"name": "Total number of wilds used in patterns",
+			"type": "int"
+		  },
+	}
 }
