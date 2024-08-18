@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS `board` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 ALTER TABLE `player` ADD `player_tokens_left` smallint(5) unsigned NOT NULL;
+ALTER TABLE `player` ADD `player_team` smallint(5) unsigned NOT NULL;
 
 -- CREATE TABLE IF NOT EXISTS `lastPlayed` (
 --    `lastPlayed_x` smallint(5) unsigned NOT NULL,

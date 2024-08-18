@@ -39,7 +39,6 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 dojo.place(this.format_block('jstpl_player_board', { id: player.id, color: player.color }), player_board_div);
                 var counter = new ebg.counter();
                 counter.create('remainingTokens_' + player_id);
-                console.log(gamedatas.tokensLeft);
                 var tokensLeft = gamedatas.tokensLeft[parseInt(player_id)];
                 if (tokensLeft === undefined) {
                     console.log("tokensLeft is undefined, player id is: ");
@@ -48,6 +47,9 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 }
                 counter.setValue(parseInt(tokensLeft));
                 this.remainingTokensCounter[player_id] = counter;
+                if (gamedatas.isTeams) {
+                    dojo.place(this.format_block('jstpl_team_icon', { teamNum: gamedatas.playerTeams[parseInt(player_id)] }), player_board_div);
+                }
             }
             for (var i in gamedatas.board) {
                 var square = gamedatas.board[i];
@@ -125,12 +127,21 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 element.classList.remove('possibleMove');
             });
         };
+        RivalX.prototype.clearLastPlayed = function () {
+            document.querySelectorAll('.lastPlayed').forEach(function (element) {
+                dojo.destroy(element);
+            });
+        };
         RivalX.prototype.addLastPlayedToBoard = function (x, y, lastPlayed) {
             var color = this.gamedatas.players[lastPlayed].color;
             document.querySelectorAll(".lastPlayedcolor_".concat(color)).forEach(function (element) {
                 console.log("destroying element with this color: ".concat(color));
                 dojo.destroy(element);
             });
+            var prevLastPlayedOnPosition = $("lastPlayed_".concat(x, "_").concat(y));
+            if (prevLastPlayedOnPosition !== null) {
+                dojo.destroy(prevLastPlayedOnPosition);
+            }
             dojo.place(this.format_block('jstpl_lastPlayed', {
                 color: color,
                 x_y: "".concat(x, "_").concat(y)

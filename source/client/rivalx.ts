@@ -40,7 +40,7 @@ class RivalX extends Gamegui
 	{
 		console.log( "Starting game setup" );
 
-		// Setting up player boards, specifically counter for tokens left
+		// Setting up player boards, specifically counter for tokens left and teams (if applicable)
 		for( var player_id in gamedatas.players ) {
  				var player = gamedatas.players[player_id];
 				if (player === undefined) {
@@ -54,7 +54,6 @@ class RivalX extends Gamegui
 				dojo.place( this.format_block('jstpl_player_board', {id:player.id, color:player.color} ), player_board_div );
 				const counter = new ebg.counter();
 				counter.create('remainingTokens_'+player_id);
-				console.log(gamedatas.tokensLeft);
 				const tokensLeft = gamedatas.tokensLeft[parseInt(player_id)];
 				if (tokensLeft === undefined) {
 					console.log("tokensLeft is undefined, player id is: ");
@@ -63,6 +62,10 @@ class RivalX extends Gamegui
 				}
 				counter.setValue(parseInt(tokensLeft));
 				this.remainingTokensCounter[player_id] = counter;
+
+				if (gamedatas.isTeams) {
+					dojo.place( this.format_block('jstpl_team_icon', {teamNum: gamedatas.playerTeams[parseInt(player_id)]} ), player_board_div );
+				}
 		}
 
 		// Place the tokens on the board
@@ -171,12 +174,22 @@ class RivalX extends Gamegui
 		});
 	}
 
+	clearLastPlayed() {
+		document.querySelectorAll('.lastPlayed').forEach(element => {
+			dojo.destroy(element);
+		});
+	}
+
 	addLastPlayedToBoard(x: number, y: number, lastPlayed: number) {
 		const color = this.gamedatas.players[lastPlayed]!.color;
 		document.querySelectorAll(`.lastPlayedcolor_${color}`).forEach(element => {
 			console.log(`destroying element with this color: ${color}`)
 			dojo.destroy(element);
 		});
+		const prevLastPlayedOnPosition = $(`lastPlayed_${x}_${y}`);
+		if (prevLastPlayedOnPosition !== null) {
+			dojo.destroy(prevLastPlayedOnPosition);
+		}
 		dojo.place( this.format_block( 'jstpl_lastPlayed', {
 			color: color,
 			x_y: `${x}_${y}`

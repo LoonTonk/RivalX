@@ -31,9 +31,9 @@
 
 	// Game Clock
 	"estimated_duration": 25,
-	"fast_additional_time": 30,
-	"medium_additional_time": 45,
-	"slow_additional_time": 60,
+	"fast_additional_time": 60,
+	"medium_additional_time": 90,
+	"slow_additional_time": 120,
 
 	// Game Rankings
 	"tie_breaker_description": "",

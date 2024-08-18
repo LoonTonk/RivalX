@@ -23,8 +23,9 @@ require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 class RivalX extends Table
 {
     const MAX_WILDS = 5;
-    const POINTS_TO_WIN = array(2 => 15, 3 => 12, 4 => 10);
+    const POINTS_TO_WIN = array(2 => 15, 3 => 12, 4 => 10, '2v2' => 3);
     const PLAYER_TOKEN_COUNT = 15;
+    const TEAM_NAMES = array(1 => "blue", 2 => "red"); // TODO: change the names to be more interesting
 	function __construct( )
 	{
         // Your global variables labels:
@@ -38,7 +39,7 @@ class RivalX extends Table
         $this->initGameStateLabels( array( 
 
             //      ...
-            //    "my_first_game_variant" => 100,
+            "ffa_or_teams" => 100
             //    "my_second_game_variant" => 101,
             //      ...
         ) );        
@@ -67,13 +68,29 @@ class RivalX extends Table
  
         // Create players
         // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
-        $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar, player_tokens_left) VALUES ";
+        $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar, player_tokens_left, player_team) VALUES ";
         $values = array();
         $player_token_count = self::PLAYER_TOKEN_COUNT;
-        foreach( $players as $player_id => $player )
-        {
-            $color = array_shift( $default_colors );
-            $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."','".$player_token_count."')";
+        if ($this->getGameStateValue('ffa_or_teams') == 2) {
+            $first_team = true;
+            foreach( $players as $player_id => $player )
+            {
+                $color = array_shift( $default_colors );
+                $player_info = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."','".$player_token_count."',";
+                if ($first_team) {
+                    $player_info .= "1)";
+                } else {
+                    $player_info .= "2)";
+                }
+                $values[] = $player_info;
+                $first_team = !$first_team;
+            }
+        } else { // base variant
+            foreach( $players as $player_id => $player )
+            {
+                $color = array_shift( $default_colors );
+                $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."','".$player_token_count."',0)";
+            }
         }
         $sql .= implode( ',', $values );
         $this->DbQuery( $sql );
@@ -127,11 +144,12 @@ class RivalX extends Table
         // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
         $sql = "SELECT player_id id, player_score score FROM player ";
         $result['players'] = $this->getCollectionFromDb( $sql );
-  
+        $result['playerTeams'] = $this->getCollectionFromDb( "SELECT player_id id, player_team team FROM player", true );
         $sql = "SELECT board_x x, board_y y, board_player player, board_player_tile player_tile, board_selectable selectable, board_lastPlayed lastPlayed
         FROM board";
         $result['board'] = self::getObjectListFromDB( $sql );
         $result['tokensLeft'] = $this->getCollectionFromDB( "SELECT player_id id, player_tokens_left tokensLeft FROM player", true );
+        $result['isTeams'] = ($this->getGameStateValue('ffa_or_teams') == 2);
         return $result;
     }
 
@@ -203,7 +221,11 @@ class RivalX extends Table
 
     // Returns true if a player has achieved enough points
     function checkForWin() {
-        $points_to_win = self::POINTS_TO_WIN[$this->getPlayersNumber()];
+        if ($this->getGameStateValue('ffa_or_teams') == 2) {
+            $points_to_win = self::POINTS_TO_WIN['2v2']; //TODO: maybe the game should not be a tie for the winning team?
+        } else {
+            $points_to_win = self::POINTS_TO_WIN[$this->getPlayersNumber()];
+        }
         $scores = $this->getObjectListFromDB( "SELECT player_score score FROM player", true );
         foreach($scores as $score) {
             if ((int)$score >= $points_to_win) {
@@ -217,7 +239,11 @@ class RivalX extends Table
     // Returns true if there are no wilds in the pattern
     function updateBoardOnPattern($patternTokens, $board) {
         // Track previous scores to compare later
-        $oldScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
+        if ($this->getGameStateValue('ffa_or_teams') == 2) {
+            $oldScores = self::getCollectionFromDb("SELECT player_team, player_score FROM player", true);
+        } else {
+            $oldScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
+        }
 
         // First, separate pattern Tokens into player and non player
         $patterns = array();
@@ -233,9 +259,7 @@ class RivalX extends Table
                 }
             }
         }
-        $this->dump("playerTokens before makeUnique: ", $playerTokens);
         $playerTokens = self::makeUnique($playerTokens);
-        $this->dump("playerTokens after makeUnique: ", $playerTokens);
         $wildTokens = self::makeUnique($wildTokens);
 
         // Next, update the board table (remove tokens, add point tiles)
@@ -257,6 +281,13 @@ class RivalX extends Table
             self::DbQuery( "UPDATE player SET player_score = (SELECT COUNT(*) AS player_tiles FROM board WHERE board_player_tile = '$player') WHERE player_id = $player" );
         }
 
+        if ($this->getGameStateValue('ffa_or_teams') == 2) { // If teams mode, score needs to be readjusted again
+            $teamScores = self::getCollectionFromDb("SELECT player_team, SUM(player_score) AS total_score FROM player GROUP BY player_team", true);
+            foreach ($teamScores as $team => $score) {
+                self::DbQuery("UPDATE player SET player_score = $score WHERE player_team = $team");
+            }
+        }
+
         // update token count for player who made pattern
         $tokens_back = count($playerTokens);
         self::DbQuery( "UPDATE player SET player_tokens_left = player_tokens_left + $tokens_back WHERE player_id = $player_id" );
@@ -270,23 +301,14 @@ class RivalX extends Table
             self::DbQuery( $sql );
         }
 
-        // Notify remove tokens and add point tiles
-/*         $this->dump("playerTokens", $playerTokens);
-
-        self::notifyAllPlayers( "removeTokens", "",array('playerTokens' => $playerTokens, 'player_id' => $player_id)); */
         // Notify add point tiles
         $tokensToRemove = array();
         foreach ($playerTokens as $token) {
             $tokensToRemove[] = array('x' => $token['x'], 'y' => $token['y'], 'player_id' => $player_id);
         }
-/*         self::notifyAllPlayers( "addScoreTiles", "", $playerTiles); */
-
-        // Notify make tokens selectable
-/*         self::notifyAllPlayers( "markSelectableTokens", '', $wildTokens); */
 
         // Notify outline patterns
         $centerToken = $patternTokens[$patterns[0]][0]; // Gets the first token in the first pattern
-/*         self::notifyAllPlayers( "outlinePatterns", '', array('x' => $centerToken['x'], 'y' => $centerToken['y'], $patterns)); */
 
         // Notify score Pattern
         if (count($patterns) > 1) {
@@ -354,21 +376,38 @@ class RivalX extends Table
         self::notifyAllPlayers('removeTokens', '', $tokensToRemove);
 
         // Notify update scores
-        $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
-        $currPlayerPointGain = $newScores[$player_id] - $oldScores[$player_id];
-        $scoreChangeMessage = $this->getPlayerNameById($player_id) . ' has scored ' . $currPlayerPointGain . ' point' ;
-        if ($currPlayerPointGain > 1) {
-            $scoreChangeMessage .= 's';
-        }
-        foreach ($newScores as $player => $newScore) {
-            if ($player == $player_id) { // Counting score for player that scored is already done above
-                continue;
+        if ($this->getGameStateValue('ffa_or_teams') == 2) {
+            $newScores = self::getCollectionFromDb("SELECT player_team, player_score FROM player", true);
+            $scoreChangeMessage = '';
+            foreach ($newScores as $team => $newScore) {
+                $scoreChange = $newScore - $oldScores[(int)$team];
+                if ($scoreChange > 0) {
+                    if (strlen($scoreChangeMessage) > 0) {
+                        $scoreChangeMessage .= ", ";
+                    }
+                    $scoreChangeMessage .= self::TEAM_NAMES[(int)$team] . " team scores " .$scoreChange . " point";
+                    $scoreChangeMessage .= $scoreChange === 1 ? '' : 's';
+                } else if ($scoreChange < 0) {
+                    if (strlen($scoreChangeMessage) > 0) {
+                        $scoreChangeMessage .= ", ";
+                    }
+                    $scoreChangeMessage .= self::TEAM_NAMES[(int)$team] . " team loses " .-(int)$scoreChange . " point";
+                    $scoreChangeMessage .= $scoreChange === -1 ? '' : 's';
+                }
             }
-            $otherPlayerPointLoss = $oldScores[$player] - $newScore;
-            if ($otherPlayerPointLoss != 0) {
-                $scoreChangeMessage .= ', '. $this->getPlayerNameById($player) .' has lost '.$otherPlayerPointLoss.' point';
-                if ($otherPlayerPointLoss > 1) {
-                    $scoreChangeMessage .= 's';
+        } else {
+            $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
+            $currPlayerPointGain = $newScores[$player_id] - $oldScores[$player_id];
+            $scoreChangeMessage = $this->getPlayerNameById($player_id) . ' has scored ' . $currPlayerPointGain . ' point' ;
+            $scoreChangeMessage .= $currPlayerPointGain === 1 ? '' : 's';
+            foreach ($newScores as $player => $newScore) {
+                if ($player == $player_id) { // Counting score for player that scored is already done above
+                    continue;
+                }
+                $otherPlayerPointLoss = $oldScores[$player] - $newScore;
+                if ($otherPlayerPointLoss != 0) {
+                    $scoreChangeMessage .= ', '. $this->getPlayerNameById($player) .' has lost '.$otherPlayerPointLoss.' point';
+                    $scoreChangeMessage .= $otherPlayerPointLoss === -1 ? '' : 's';
                 }
             }
         }
@@ -452,7 +491,6 @@ class RivalX extends Table
         $max_wilds = self::MAX_WILDS;
         $sql = "SELECT board_x x, board_y y, board_player player FROM board WHERE board_lastPlayed > $max_wilds AND board_player > $max_wilds"; 
         $lastPlayedArray = self::getObjectListFromDB( $sql );
-        $this->dump("getPatternTokens sql response: ", $lastPlayedArray);
         if (count($lastPlayedArray) > 0) { // there are lastPlayed tokens
             foreach ($lastPlayedArray as $lastPlayed) {
                 $patternTokens = self::getPatternTokensAtxy($lastPlayed['x'], $lastPlayed['y'], $lastPlayed['player'], $board);
@@ -597,12 +635,10 @@ class RivalX extends Table
                             }
                         }
                     }
-                    $this->dump('wild_id: ', $wild_id);
                     $allResults[$wild_id] = $result;
                     array_splice($result, 0); // Clears $result
                     $board[$wild['x']][$wild['y']]['player'] = $wild_id; // Put the token back for checking the rest of the possible patterns
                 }
-                $this->dump('allResults: ', $allResults);
                 return $allResults;
             default:
                 throw new Error("get possible moves called with an invalid arg");
@@ -628,7 +664,6 @@ class RivalX extends Table
                 }   
 
                 $winning_players_str = $highest_score_players[0] .' has';
-                $this->dump("highest_score_players", $highest_score_players);
                 if (count($highest_score_players) > 1) {
                     $other_highest_score_players = array_diff($highest_score_players, [$highest_score_players[0]]);
                     $winning_players_str = substr($winning_players_str, 0, -4);
@@ -701,7 +736,6 @@ class RivalX extends Table
         ) );
 
         if ($numWilds >= self::MAX_WILDS) {
-            $this->dump("finishing turn with this number of wilds: ", $numWilds);
             $this->gamestate->nextState( 'finishTurn' );
         } else {
             $this->gamestate->nextState( 'placeWild' );
@@ -823,9 +857,7 @@ class RivalX extends Table
     function stNextPlayer() {
         $board = self::getBoard();
         $patternTokens = self::getPatternTokens($board);
-        $this->dump("patternTokens at stNextPlayer: ", $patternTokens);
         if (count($patternTokens) > 0) { // A pattern has been made!
-            $this->dump("pattern Tokens ", $patternTokens);
             if (self::updateBoardOnPattern($patternTokens, $board)) {
                 self::activeNextPlayer();
                 $this->gamestate->nextState('nextTurn');

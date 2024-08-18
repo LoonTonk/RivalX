@@ -1,1 +1,1 @@
-{}
+{	"100": {        "name": "Play Type",        "values": {            "1": {                "name": "Free-For-All",                "description": "First player to reach enough points wins."            },            "2": {                "name": "2v2 Teams",                "description": "First team to reach 12 points wins."            }        },		"displaycondition": [			{			  "type": "minplayers",			  "value": 4			}		]    }}
