@@ -23,7 +23,7 @@ require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 class RivalX extends Table
 {
     const MAX_WILDS = 5;
-    const POINTS_TO_WIN = array(2 => 5, 3 => 12, 4 => 10, '2v2' => 3);
+    const POINTS_TO_WIN = array(2 => 15, 3 => 12, 4 => 10, '2v2' => 12);
     const PLAYER_TOKEN_COUNT = 15;
     const TEAM_NAMES = array(1 => "blue", 2 => "red"); // TODO: change the names to be more interesting
     const BOARD_HEIGHT = 8;
@@ -261,6 +261,10 @@ class RivalX extends Table
         return $playerHasWon;
     }
 
+    function zombiePlaceWilds() {
+        //TODO
+    }
+
     // Need to notify and sql remove tokens (including token number), add point tiles, update score, make wilds selectable, highlight pattern
     // Returns true if there are no wilds in the pattern
     function updateBoardOnPattern($patternTokens, $board) {
@@ -342,24 +346,18 @@ class RivalX extends Table
 
         // Notify score Pattern
         if (count($patterns) > 1) {
-            $patternName = 'combination';
+            $patternName = 'Combination';
         } else {
             $patternCode = substr($patterns[0],0,3);
             switch ($patternCode) {
                 case ('row'):
-                    $patternName = 'row';
-                    break;
                 case ('col'):
-                    $patternName = 'column';
-                    break;
                 case ('nwd'):
-                    $patternName = 'diagonal';
-                    break;
                 case ('ned'):
-                    $patternName = 'diagonal';
+                    $patternName = 'Five-in-a-row';
                     break;
                 case ('pls'):
-                    $patternName = 'plus';
+                    $patternName = 'Plus';
                     break;
                 case ('crs'):
                     $patternName = 'X';
@@ -371,32 +369,94 @@ class RivalX extends Table
 
         self::notifyAllPlayers('markSelectableTokens', '', $wildTokens);
 
-        if ($patternName !== 'combination') {
-            self::notifyAllPlayers( 'scorePattern', clienttranslate('${player_name} has completed a ${pattern_name} pattern'), array( //TODO: list tiles the pattern was on?
+        // Score change message
+        $newScores = $this->getGameStateValue('ffa_or_teams') == 2 ? 
+        self::getCollectionFromDb("SELECT player_team, player_score FROM player", true): self::getCollectionFromDb("SELECT player_id, player_score FROM player", true);
+
+        $scoreGainMessage = '';
+        $scoreLossMessage = '';
+        foreach ($newScores as $player_or_team => $newScore) { // First pass finds the players/teams who gained points
+            $scoreChange = $newScore - $oldScores[(int)$player_or_team];
+            if ($scoreChange > 0) {
+                if (strlen($scoreGainMessage) > 0) {
+                    $scoreGainMessage .= ", ";
+                }
+                if ($this->getGameStateValue('ffa_or_teams') == 2) {
+                    $teamName = self::TEAM_NAMES[(int)$player_or_team];
+                    $scoreGainMessage .= sprintf(self::_('%s team scores %d point(s)'), $teamName, $scoreChange);
+                } else {
+                    $playerName = $this->getPlayerNameById($player_or_team);
+                    $scoreGainMessage .= sprintf(self::_('%s scores %d point(s)'), $playerName, $scoreChange);
+                }
+            }
+        }
+        foreach ($newScores as $player_or_team => $newScore) { // Second pass finds the players/teams who lost points
+            $scoreChange = $newScore - $oldScores[(int)$player_or_team];
+            if ($scoreChange < 0) {
+                if (strlen($scoreLossMessage) > 0) {
+                    $scoreLossMessage .= ", ";
+                }
+                if ($this->getGameStateValue('ffa_or_teams') == 2) {
+                    $teamName = self::TEAM_NAMES[(int)$player_or_team];
+                    $scoreLossMessage .= sprintf(self::_('%s team loses %d point(s)'), $teamName, -$scoreChange);
+                } else {
+                    $playerName = $this->getPlayerNameById($player_or_team);
+                    $scoreLossMessage .= sprintf(self::_('%s loses %d point(s)'), $playerName, -$scoreChange);
+                }
+            }
+        }
+        // Combine the scoreChange and scoreLoss messages
+        $scoreChangeMessage = $scoreGainMessage;
+        if (strlen($scoreGainMessage) > 0 && strlen($scoreLossMessage) > 0) {
+            $scoreChangeMessage .= ', ';
+        }
+        $scoreChangeMessage .= $scoreLossMessage;
+
+/*             $scoreChangeMessage .= self::TEAM_NAMES[(int)$team] . " team scores " .$scoreChange . " point(s)";
+            } else if ($scoreChange < 0) {
+                if (strlen($scoreChangeMessage) > 0) {
+                    $scoreChangeMessage .= ", ";
+                }
+                $scoreChangeMessage .= self::TEAM_NAMES[(int)$team] . " team loses " .-(int)$scoreChange . " point(s)";
+        }
+        $currPlayerPointGain = $newScores[$player_id] - $oldScores[$player_id];
+        $scoreChangeMessage = $this->getPlayerNameById($player_id) . ' has scored ' . $currPlayerPointGain . ' point(s)';
+        foreach ($newScores as $player => $newScore) {
+            if ($player == $player_id) { // Counting score for player that scored is already done above
+                continue;
+            }
+            $otherPlayerPointLoss = $oldScores[$player] - $newScore;
+            if ($otherPlayerPointLoss != 0) {
+                $scoreChangeMessage .= ', '. $this->getPlayerNameById($player) .' has lost '.$otherPlayerPointLoss.' point(s)';
+            }
+        } */
+
+        $player_name = $this->getPlayerNameById($player_id);
+        if ($patternName !== 'Combination') {
+            self::notifyAllPlayers( 'scorePattern', clienttranslate('${player_name} has completed a ${pattern_name} pattern').', '.$scoreChangeMessage, array( //TODO: list tiles the pattern was on?
                 'x' => $centerToken['x'],
                 'y' => $centerToken['y'],
-                'patternName' => $patterns[0],
+                'patternCode' => $patterns[0],
                 'player_id' => $player_id,
-                'player_name' => $this->getPlayerNameById($player_id),
+                'player_name' => $player_name,
                 'pattern_name' => $patternName,
             ) ); 
         } else {
-            $count = 0;
-            foreach($patterns as $pattern) {
-                if ($count === 0) { // First iteration of loop
-                    self::notifyAllPlayers( 'scorePattern', clienttranslate('${player_name} has completed a ${pattern_name} pattern'), array( //TODO: list tiles the pattern was on?
+            foreach($patterns as $index => $pattern) {
+                if ($index === 0) {
+                    self::notifyAllPlayers( 'scorePattern', clienttranslate('${player_name} has completed a ${pattern_name} pattern').', '.$scoreChangeMessage, array( //TODO: list tiles the pattern was on?
                         'x' => $centerToken['x'],
                         'y' => $centerToken['y'],
-                        'patternName' => $pattern,
+                        'patternCode' => $pattern,
                         'player_id' => $player_id,
-                        'player_name' => $this->getPlayerNameById($player_id),
+                        'player_name' => $player_name,
                         'pattern_name' => $patternName,
                     ) );
                 } else {
                     self::notifyAllPlayers( 'scorePattern', '', array( //TODO: list tiles the pattern was on?
                         'x' => $centerToken['x'],
                         'y' => $centerToken['y'],
-                        'patternName' => $pattern,
+                        'patternCode' => $pattern,
                         'player_id' => $player_id,
                     ) );
                 }
@@ -404,44 +464,7 @@ class RivalX extends Table
         }
 
         self::notifyAllPlayers('removeTokens', '', $tokensToRemove);
-
-        // Notify update scores
-        if ($this->getGameStateValue('ffa_or_teams') == 2) {
-            $newScores = self::getCollectionFromDb("SELECT player_team, player_score FROM player", true);
-            $scoreChangeMessage = '';
-            foreach ($newScores as $team => $newScore) {
-                $scoreChange = $newScore - $oldScores[(int)$team];
-                if ($scoreChange > 0) {
-                    if (strlen($scoreChangeMessage) > 0) {
-                        $scoreChangeMessage .= ", ";
-                    }
-                    $scoreChangeMessage .= self::TEAM_NAMES[(int)$team] . " team scores " .$scoreChange . " point";
-                    $scoreChangeMessage .= $scoreChange === 1 ? '' : 's';
-                } else if ($scoreChange < 0) {
-                    if (strlen($scoreChangeMessage) > 0) {
-                        $scoreChangeMessage .= ", ";
-                    }
-                    $scoreChangeMessage .= self::TEAM_NAMES[(int)$team] . " team loses " .-(int)$scoreChange . " point";
-                    $scoreChangeMessage .= $scoreChange === -1 ? '' : 's';
-                }
-            }
-        } else {
-            $newScores = self::getCollectionFromDb( "SELECT player_id, player_score FROM player", true );
-            $currPlayerPointGain = $newScores[$player_id] - $oldScores[$player_id];
-            $scoreChangeMessage = $this->getPlayerNameById($player_id) . ' has scored ' . $currPlayerPointGain . ' point' ;
-            $scoreChangeMessage .= $currPlayerPointGain === 1 ? '' : 's';
-            foreach ($newScores as $player => $newScore) {
-                if ($player == $player_id) { // Counting score for player that scored is already done above
-                    continue;
-                }
-                $otherPlayerPointLoss = $oldScores[$player] - $newScore;
-                if ($otherPlayerPointLoss != 0) {
-                    $scoreChangeMessage .= ', '. $this->getPlayerNameById($player) .' has lost '.$otherPlayerPointLoss.' point';
-                    $scoreChangeMessage .= $otherPlayerPointLoss === -1 ? '' : 's';
-                }
-            }
-        }
-        self::notifyAllPlayers( "newScores", clienttranslate($scoreChangeMessage), array(
+        self::notifyAllPlayers( "newScores", '', array(
             "scores" => $newScores
         ) );
 
@@ -457,26 +480,20 @@ class RivalX extends Table
         }
         // TODO: possibly change this so combination patterns increment stats for all the patterns in them?
         switch ($patternName) {
-            case ('row'):
-                self::incStat(1, 'rowPatterns_made', $player_id);
+            case ('Five-in-a-row'):
+                self::incStat(1, 'rowPatterns_made', $player_id); // TODO: If mark gives the go-ahead, change stats to have all of these under Five-in-a-row
                 break;
-            case ('column'):
-                self::incStat(1, 'colPatterns_made', $player_id);
-                break; 
-            case ('diagonal'):
-                self::incStat(1, 'diagPatterns_made', $player_id);
-                break; 
-            case ('plus'):
+            case ('Plus'):
                 self::incStat(1, 'plusPatterns_made', $player_id);
                 break; 
             case ('X'):
                 self::incStat(1, 'XPatterns_made', $player_id);
                 break; 
-            case ('combination'):
+            case ('Combination'):
                 self::incStat(1, 'combinationPatterns_made', $player_id);
                 break; 
             default:
-                throw new FeException("Notifications for the type of pattern made did not recognize the patterncode: ".$patternName);
+                throw new feException("Notifications for the type of pattern made did not recognize the patterncode: ".$patternName);
         }
         self::incStat(count($wildTokens), 'wilds_used', $player_id);
 
@@ -706,7 +723,7 @@ class RivalX extends Table
                 }
                 return $allResults;
             default:
-                throw new Error("get possible moves called with an invalid arg");
+                throw new feException("get possible moves called with an invalid arg");
         }
     }
 
@@ -728,21 +745,19 @@ class RivalX extends Table
                     } // Otherwise, do nothing
                 }   
 
-                $winning_players_str = $highest_score_players[0] .' has';
+                $winning_players = $highest_score_players[0];
                 if (count($highest_score_players) > 1) {
                     $other_highest_score_players = array_diff($highest_score_players, [$highest_score_players[0]]);
-                    $winning_players_str = substr($winning_players_str, 0, -4);
                     foreach ($other_highest_score_players as $player_name) {
-                        $winning_players_str .= ' and '.$player_name;
+                        $winning_players .= ', '.$player_name;
                     }
-                    $winning_players_str .= ' have';
                 }
                 self::setStat(1, 'victory_type');
                 foreach ($highest_score_players as $player) {
                     self::setStat(1, 'victory_type_player', $player);
                 }
                 self::notifyAllPlayers( "blockadeWin", clienttranslate('${winning_players} won via a blockade win!'), array(
-                    "winning_players" => $winning_players_str
+                    "winning_players" => $winning_players
                 ) );
                 return false;
             }
@@ -776,7 +791,7 @@ class RivalX extends Table
         //Stats
         self::incStat(1, 'tokens_placed', $player_id);
         // Notify
-        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} plays a token at (${x}, ${y})' ), array(
+        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a token at (${x}, ${y})' ), array(
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),
             'x' => $x,
@@ -798,11 +813,13 @@ class RivalX extends Table
         $numWilds = self::getNumWilds() + 1;
         $max_wilds = self::MAX_WILDS;
         self::DbQuery( "UPDATE board SET board_player = $numWilds WHERE (board_x, board_y) IN (($x,$y))" );
-        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a wild token at (${x},${y}), '.$numWilds.'/'.$max_wilds.'placed' ), array(
+        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a wild token at (${x},${y}), ${numWilds}/${max_wilds} placed' ), array(
             'player_id' => $numWilds,
             'player_name' => self::getActivePlayerName(),
             'x' => $x,
             'y' => $y,
+            'numWilds' => $numWilds,
+            'max_wilds' => $max_wilds,
             'lastPlayed' => self::getActivePlayerId()
         ) );
 
@@ -987,6 +1004,16 @@ class RivalX extends Table
     	
         if ($state['type'] === "activeplayer") {
             switch ($statename) {
+                case('wildPlacement'):
+                    self::zombiePlaceWilds();
+                    $this->gamestate->nextState('finishTurn');
+                    break;
+                case('playerTurn'):
+                    $this->gamestate->nextState("placeToken");
+                    break;
+                case('repostionWilds'):
+                    $this->gamestate->nextState("finishTurn");
+                    break;
                 default:
                     $this->gamestate->nextState( "zombiePass" );
                 	break;
@@ -1048,104 +1075,3 @@ class RivalX extends Table
 
     }    
 }
-/*  if (count($result) > 0) {
-            $result[] = array('x' => $x, 'y' => $y);
-            // Serialize each sub-array
-            $serializedArray = array_map('serialize', $result);
-
-            // Remove duplicates
-            $uniqueSerializedArray = array_unique($serializedArray);
-
-            // Unserialize the unique values
-            $uniqueArray = array_map('unserialize', $uniqueSerializedArray);
-            return $uniqueArray;
-        }
-        // Checks for horizontal pattern
-        $row = array( array(-1,0), array(1,0) );
-        foreach ($row as $direction) {
-            $curr_x = $x;
-            $curr_y = $y;
-            $continue = true;
-            while ($continue) {
-                $curr_x += $direction[0];
-                $curr_y += $direction[1];
-                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) &&
-                    ($board[$curr_x][$curr_y]['player'] == $player_id || $board[$curr_x][$curr_y]['player'] == 0)) { // Spot is either token of player or wild
-                    $mayBePattern[] = array('x' => $curr_x, 'y' => $curr_y);
-                } else { // spot is not pattern token
-                    $continue = false;
-                }
-            }
-        }
-        if (count($mayBePattern) >= 4) { // 4 because we are not counting the token we started on
-            $result = array_merge( $result, $mayBePattern );
-        }
-        array_splice($mayBePattern, 0); // Clears mayBePattern
-
-        // Checks for vertical pattern
-        $col = array( array(0,-1), array(0,1) );
-        foreach ($col as $direction) {
-            $curr_x = $x;
-            $curr_y = $y;
-            $continue = true;
-            while ($continue) {
-                $curr_x += $direction[0];
-                $curr_y += $direction[1];
-                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) &&
-                    ($board[$curr_x][$curr_y]['player'] == $player_id || $board[$curr_x][$curr_y]['player'] == 0)) { // Spot is either token of player or wild
-                    $mayBePattern[] = array('x' => $curr_x, 'y' => $curr_y);
-                } else { // spot is not pattern token
-                    $continue = false;
-                }
-            }
-        }
-        if (count($mayBePattern) >= 4) { // 4 because we are not counting the token we started on
-            $
-            $result = array_merge( $result, $mayBePattern );
-        }
-        array_splice($mayBePattern, 0); // Clears mayBePattern
-
-        // Checks for topleft->bottomright diagonal pattern
-        $col = array( array(1,1), array(-1,-1) );
-        foreach ($col as $direction) {
-            $curr_x = $x;
-            $curr_y = $y;
-            $continue = true;
-            while ($continue) {
-                $curr_x += $direction[0];
-                $curr_y += $direction[1];
-                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) &&
-                    ($board[$curr_x][$curr_y]['player'] == $player_id || $board[$curr_x][$curr_y]['player'] == 0)) { // Spot is either token of player or wild
-                    $mayBePattern[] = array('x' => $curr_x, 'y' => $curr_y);
-                } else { // spot is not pattern token
-                    $continue = false;
-                }
-            }
-        }
-        if (count($mayBePattern) >= 4) { // 4 because we are not counting the token we started on
-            $result = array_merge( $result, $mayBePattern );
-        }
-        array_splice($mayBePattern, 0); // Clears mayBePattern
-
-        // Checks for topright->bottomleft diagonal pattern
-        $col = array( array(-1,1), array(1,-1) );
-        foreach ($col as $direction) {
-            $curr_x = $x;
-            $curr_y = $y;
-            $continue = true;
-            while ($continue) {
-                $curr_x += $direction[0];
-                $curr_y += $direction[1];
-                if (($curr_x>=1 && $curr_x<=8 && $curr_y>=1 && $curr_y<=8) &&
-                    ($board[$curr_x][$curr_y]['player'] == $player_id || $board[$curr_x][$curr_y]['player'] == 0)) { // Spot is either token of player or wild
-                    $mayBePattern[] = array('x' => $curr_x, 'y' => $curr_y);
-                } else { // spot is not pattern token
-                    $continue = false;
-                }
-            }
-        }
-        if (count($mayBePattern) >= 4) { // 4 because we are not counting the token we started on
-            $result = array_merge( $result, $mayBePattern );
-        }
-        array_splice($mayBePattern, 0); // Clears mayBePattern 
-        */

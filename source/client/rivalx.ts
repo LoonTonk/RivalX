@@ -23,7 +23,7 @@ declare class Counter {
 	disable(): void; // Sets value to "-"
   }
 
-/** The root for all of your game code. */
+/** The root for all of your game code. */ // TODO: make lastPlayed tooltip go above token tooltip
 class RivalX extends Gamegui
 {
 	static readonly MAX_WILDS: number = 5;
@@ -83,7 +83,7 @@ class RivalX extends Gamegui
 					this.addLastPlayedToBoard(square.x, square.y, square.lastPlayed);
 				}
 			}
-		dojo.query( '.square' ).connect( 'onclick', this, 'onplaceToken' );
+		dojo.query( '.square' ).connect( 'onclick', this, 'onsquareClick' );
 		
 		// Setup game notifications to handle (see "setupNotifications" method below)
 		this.setupNotifications(); // <-- Keep this line
@@ -119,7 +119,11 @@ class RivalX extends Gamegui
 	/** @gameSpecific See {@link Gamegui.onLeavingState} for more information. */
 	override onLeavingState(stateName: GameStateName): void
 	{
-		console.log( 'Leaving state: '+stateName );
+		switch(stateName) {
+			case 'wildPlacement':
+				this.clearLastPlayed();
+				break;
+		}
 	}
 
 	/** @gameSpecific See {@link Gamegui.onUpdateActionButtons} for more information. */
@@ -183,19 +187,18 @@ class RivalX extends Gamegui
 	addLastPlayedToBoard(x: number, y: number, lastPlayed: number) {
 		const color = this.gamedatas.players[lastPlayed]!.color;
 		document.querySelectorAll(`.lastPlayedcolor_${color}`).forEach(element => {
-			console.log(`destroying element with this color: ${color}`)
 			dojo.destroy(element);
 		});
-		const prevLastPlayedOnPosition = $(`lastPlayed_${x}_${y}`);
-		if (prevLastPlayedOnPosition !== null) {
-			dojo.destroy(prevLastPlayedOnPosition);
-		}
 		dojo.place( this.format_block( 'jstpl_lastPlayed', {
 			color: color,
-			x_y: `${x}_${y}`
+			x_y: `${x}_${y}`,
+			player_id: lastPlayed
 		} ) , 'board' );
-		this.placeOnObject( `lastPlayed_${x}_${y}`, `square_${x}_${y}` );
-		this.addTooltip(`lastPlayed_${x}_${y}`, _(`${this.gamedatas.players[lastPlayed]!.name}'s last move was here`), '');
+		this.placeOnObject( `lastPlayed_${x}_${y}_${lastPlayed}`, `square_${x}_${y}` );
+		const lastPlayedToolTip = dojo.string.substitute( _("${player}'s last move was here"), {
+			player: this.gamedatas.players[lastPlayed]!.name
+		} );
+		this.addTooltip(`lastPlayed_${x}_${y}_${lastPlayed}`, lastPlayedToolTip, '');
 	}
 
 	markSelectableToken(x: number, y: number) {
@@ -205,7 +208,7 @@ class RivalX extends Gamegui
 		}
 		dojo.place("<div class='selectable'></div>", selectable_token );
 		// Change tooltip
-		this.addTooltip(`token_${x}_${y}`, '', _('Select this wild to move it'));
+		this.addTooltip(`token_${x}_${y}`, '', _('Select this wild to reposition it'));
 	}
 
 	/** Updates the squares on the board matching the possible moves. */
@@ -476,7 +479,7 @@ class RivalX extends Gamegui
 	///////////////////////////////////////////////////
 	//// Player's action
 	
-	onplaceToken( evt: Event )
+	onsquareClick( evt: Event )
 	{
 		// Stop this event propagation
 		evt.preventDefault();
@@ -485,6 +488,9 @@ class RivalX extends Gamegui
 			throw new Error('evt.currentTarget is null! Make sure that this function is being connected to a DOM HTMLElement.');
 
 		let [_square_, x, y] = evt.currentTarget.id.split('_');
+		if (x === undefined || y === undefined) {
+			throw new Error ("x or y was undefined when trying to get coordinates of square clicked on");
+		}
 		const token = $<HTMLElement>( `token_${x}_${y}` );
 		if (token !== null) { // Check if there is already a token at this square's location
 			this.onselectToken(evt); // If so, the token has also been clicked already
@@ -497,10 +503,6 @@ class RivalX extends Gamegui
 		// Check that this action is possible at this moment (shows error dialog if not possible)
 		if( this.checkAction( 'placeToken', true ) ) {
 			// Remove lastPlayed from the previous token, add it to the new one
-			if (x === undefined || y === undefined) {
-				throw new Error ("x or y was undefined when trying to get coordinates of square clicked on");
-			}
-			console.log("Current player id is:" + this.getCurrentPlayerId());
 			this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getCurrentPlayerId());
 			this.ajaxcall( `/${this.game_name}/${this.game_name}/placeToken.html`, {
 				x, y, lock: true
@@ -510,28 +512,25 @@ class RivalX extends Gamegui
 			if (selected !== null) { // There is a selected token
 				if (square.classList.contains('possibleMove')) {
 					// Remove lastPlayed from the previous token, add it to the new one
-					if (x === undefined || y === undefined) {
-						throw new Error ("x or y was undefined when trying to get coordinates of square clicked on");
-					}
 					this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getCurrentPlayerId());
 					let [_square_, old_x, old_y] = selected.closest('[id]')!.id.split('_');
 					this.ajaxcall( `/${this.game_name}/${this.game_name}/moveWild.html`, {
 						old_x: old_x, old_y: old_y, new_x: x, new_y: y, lock: true
 					}, this, function() {} );
 				} else {
-					this.showMessage("Cannot place a wild here, " +
-						"when moving wilds after completing a pattern they cannot complete another pattern unless it is a pattern of 5 wilds", "error");
+					this.showMessage(_("Wilds cannot be repositioned to create a pattern, except for an Instant Win pattern with 5 Wilds"), "error");
 				}
 			} else { // there is not a selected
-				this.showMessage("You must first select a wild to move it", "error");
+				this.showMessage(_("Select a wild to reposition it, or click 'Finish Turn'"), "error");
 			}
 		} else if (this.checkAction('placeWild')) {
 			if (square.classList.contains('possibleMove')) {
+				this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getCurrentPlayerId());
 				this.ajaxcall( `/${this.game_name}/${this.game_name}/placeWild.html`, {
 					x, y, lock: true
 				}, this, function() {} );
 			} else {
-				this.showMessage("Cannot place a wild here, when initially placing wilds they cannot be adjacent to other wilds", "error");
+				this.showMessage(_("Wilds cannot be placed in any of the 8 tiles directly surrounding another Wild during intial placement"), "error");
 			}
 		}
 	}
@@ -545,7 +544,7 @@ class RivalX extends Gamegui
 			throw new Error('evt.currentTarget is null! Make sure that this function is being connected to a DOM HTMLElement.');
 		// Check that this action is possible at this moment (shows error dialog if not possible)
 		if( this.checkAction( 'placeToken', true ) ) {
-			this.showMessage("Cannot play here, there is already a token", "error");
+			this.showMessage(_("A token is already placed here"), "error"); // token or x-piece??????????????
 			return;
 		} else if (this.checkAction('moveWild')) {
 			// Get the clicked square x and y
@@ -562,9 +561,7 @@ class RivalX extends Gamegui
 				} else {
 					this.clearSelectedToken();
 					token.querySelector('.selectable')!.classList.add('selected'); // select a token and update possibleMoves
-					console.log(this.wildsPossibleMoves);
 					for (const wild_id in this.wildsPossibleMoves) {
-						console.log(wild_id);
 						if (token.classList.contains(`wild_${wild_id}`)) {
 							const possibleMoves = this.wildsPossibleMoves[wild_id];
 							if (possibleMoves === undefined) {
@@ -576,7 +573,7 @@ class RivalX extends Gamegui
 					}
 				}
 			} else {
-				this.showMessage("This token is not selectable, only wilds used in the pattern are movable", "error");
+				this.showMessage(_("This token cannot be selected; only Wilds used in the pattern can be moved"), "error");
 			}
 		}
 	}
@@ -657,7 +654,7 @@ class RivalX extends Gamegui
 		this.notifqueue.setSynchronous( 'markSelectableTokens', 200 );
 		dojo.subscribe( 'blockadeWin', this, "notif_blockadeWin" );
 		this.notifqueue.setSynchronous( 'blockadeWin', 500 );
-		dojo.subscribe( 'instantWin', this, "notif_instantWin" );
+		dojo.subscribe( 'instantWin', this, "notif_instantWin" ); // TODO: have some sort of animation for an instant win, and probably a sound effect too
 		this.notifqueue.setSynchronous( 'instantWin', 500 );
 		dojo.subscribe( 'pointsWin', this, "notif_pointsWin" );
 		this.notifqueue.setSynchronous( 'pointsWin', 500 );
@@ -675,9 +672,6 @@ class RivalX extends Gamegui
 		if (id > RivalX.MAX_WILDS && id !== undefined) {
 			const tokenCounter = this.remainingTokensCounter[id];
 			tokenCounter!.incValue(-1);
-		}
-		if (notif.args.lastPlayed !== this.getCurrentPlayerId()) {
-			console.log("notif.args.lastPlayed: " + notif.args.lastPlayed);
 			this.addLastPlayedToBoard(notif.args.x, notif.args.y, notif.args.lastPlayed);
 		}
 	}
@@ -740,8 +734,8 @@ class RivalX extends Gamegui
 	}
 
 	// Add pattern to board
-	notif_scorePattern( notif: NotifAs<'scorePattern'> ) { // TODO: Fix these to always work with timings and the game ending, add more delay until the next turn, make a wild pattern more flashy
-		this.addPatternOnBoard(notif.args.patternName, notif.args.x, notif.args.y, notif.args.player_id);
+	notif_scorePattern( notif: NotifAs<'scorePattern'> ) {
+		this.addPatternOnBoard(notif.args.patternCode, notif.args.x, notif.args.y, notif.args.player_id);
 	}
 
 	notif_pointsWin() {

@@ -23,7 +23,7 @@ declare global {
 		'removeTokens': { x: number, y: number, player_id: string}[]; 
 		// [name: string]: any; // Uncomment to remove type safety on notification names and arguments
 		'markSelectableTokens': { x: number, y: number }[];
-		'scorePattern': {x: number, y: number, player_id: string, patternName: string};
+		'scorePattern': {x: number, y: number, player_id: string, patternCode: string};
 		'blockadeWin': {};
 		'instantWin': {};
 		'pointsWin': {};

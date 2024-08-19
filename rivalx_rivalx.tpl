@@ -35,9 +35,9 @@
 var jstpl_token = '<div class="token tokencolor_${color}" id="token_${x_y}"></div>';
 var jstpl_scoretile = '<div class="scoretile tilecolor_${color}" id="scoretile_${x_y}"></div>';
 var jstpl_pattern = '<div class="pattern patterncolor_${color} patterntype_${type}" id="pattern_${x_y}_${type}"></div>';
-var jstpl_lastPlayed = '<div class="lastPlayed lastPlayedcolor_${color}" id="lastPlayed_${x_y}"></div>';
+var jstpl_lastPlayed = '<div class="lastPlayed lastPlayedcolor_${color}" id="lastPlayed_${x_y}_${player_id}"></div>';
 var jstpl_player_board = '<div class="player_board"><div class="playertokens"><div class="token tokencolor_${color} displayToken"></div><div class="counter" id="remainingTokens_${id}"></div></div></div>';
-var jstpl_team_icon = '<div class="team team_${teamNum}"</div>'
+var jstpl_team_icon = '<div class="team team_${teamNum}"</div>';
 // Javascript HTML templates
 
 /*
