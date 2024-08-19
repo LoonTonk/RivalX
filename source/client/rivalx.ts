@@ -669,7 +669,7 @@ class RivalX extends Gamegui
 	{
 		this.addTokenOnBoard( notif.args.x, notif.args.y, notif.args.player_id, false);
 		const id = notif.args.player_id;
-		if (id > RivalX.MAX_WILDS && id !== undefined) {
+		if (id > RivalX.MAX_WILDS && id !== undefined) { // It is a player token
 			const tokenCounter = this.remainingTokensCounter[id];
 			tokenCounter!.incValue(-1);
 			this.addLastPlayedToBoard(notif.args.x, notif.args.y, notif.args.lastPlayed);

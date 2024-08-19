@@ -262,7 +262,27 @@ class RivalX extends Table
     }
 
     function zombiePlaceWilds() {
-        //TODO
+        $max_wilds = self::MAX_WILDS;
+        $curr_wilds = self::getUniqueValueFromDb("SELECT COUNT(*) FROM board WHERE board_player BETWEEN 1 AND $max_wilds");
+        $board = self::getBoard();
+        while ($curr_wilds < $max_wilds) {
+            $x = mt_rand(1, self::BOARD_WIDTH);
+            $y = mt_rand(1, self::BOARD_HEIGHT);
+            if (isset($this->getPossibleWildPlacements($board)[$x][$y])) { // This is a valid wild placement
+                $curr_wilds++;
+                self::DbQuery( "UPDATE board SET board_player = $curr_wilds WHERE (board_x, board_y) IN (($x,$y))" );
+                self::notifyAllPlayers( "playToken", clienttranslate( 'A wild token has automatically been placed at (${x}, ${y}), ${numWilds}/${max_wilds} placed' ), array(
+                    'player_id' => $curr_wilds,
+                    'player_name' => self::getActivePlayerName(),
+                    'x' => $x,
+                    'y' => $y,
+                    'numWilds' => $curr_wilds,
+                    'max_wilds' => $max_wilds,
+                    'lastPlayed' => -1
+                ) );
+                $board = self::getBoard();
+            }
+        }
     }
 
     // Need to notify and sql remove tokens (including token number), add point tiles, update score, make wilds selectable, highlight pattern
@@ -411,25 +431,6 @@ class RivalX extends Table
             $scoreChangeMessage .= ', ';
         }
         $scoreChangeMessage .= $scoreLossMessage;
-
-/*             $scoreChangeMessage .= self::TEAM_NAMES[(int)$team] . " team scores " .$scoreChange . " point(s)";
-            } else if ($scoreChange < 0) {
-                if (strlen($scoreChangeMessage) > 0) {
-                    $scoreChangeMessage .= ", ";
-                }
-                $scoreChangeMessage .= self::TEAM_NAMES[(int)$team] . " team loses " .-(int)$scoreChange . " point(s)";
-        }
-        $currPlayerPointGain = $newScores[$player_id] - $oldScores[$player_id];
-        $scoreChangeMessage = $this->getPlayerNameById($player_id) . ' has scored ' . $currPlayerPointGain . ' point(s)';
-        foreach ($newScores as $player => $newScore) {
-            if ($player == $player_id) { // Counting score for player that scored is already done above
-                continue;
-            }
-            $otherPlayerPointLoss = $oldScores[$player] - $newScore;
-            if ($otherPlayerPointLoss != 0) {
-                $scoreChangeMessage .= ', '. $this->getPlayerNameById($player) .' has lost '.$otherPlayerPointLoss.' point(s)';
-            }
-        } */
 
         $player_name = $this->getPlayerNameById($player_id);
         if ($patternName !== 'Combination') {
@@ -639,31 +640,7 @@ class RivalX extends Table
         $result = array();
         switch ($state) {
             case 'wildPlacement':
-                $directions = array(
-                    array( -1,-1 ), array( -1,0 ), array( -1, 1 ), array( 0, -1),array( 0, 0),
-                    array( 0,1 ), array( 1,-1), array( 1,0 ), array( 1, 1 )
-                );
-                for ($x = 1; $x <= 8; $x++) {
-                    for ($y = 1; $y <= 8; $y++) {
-                        $valid_spot = true;
-                        foreach( $directions as $direction ) {
-                            $current_x = $x + $direction[0];
-                            $current_y = $y + $direction[1];
-                            if( $current_x<1 || $current_x>8 || $current_y<1 || $current_y>8 )
-                                continue; // Out of the board => stop here for this direction
-                            else if (self::isWild($board[$current_x][$current_y]['player'])) {
-                                $valid_spot = false;
-                            }
-                        }
-                        if ($valid_spot) {
-                            if( ! isset( $result[$x] ) ) {
-                                $result[$x] = array();
-                            }
-                            $result[$x][$y] = true;
-                        }
-                    }
-                }
-                return $result;
+                return $this->getPossibleWildPlacements($board);
             case 'playerTurn':
                 for ($x = 1; $x <= 8; $x++) {
                     for ($y = 1; $y <= 8; $y++) {
@@ -725,6 +702,35 @@ class RivalX extends Table
             default:
                 throw new feException("get possible moves called with an invalid arg");
         }
+    }
+
+    // Returns an array of the possible initial wild placements
+    function getPossibleWildPlacements($board) {
+        $directions = array(
+            array( -1,-1 ), array( -1,0 ), array( -1, 1 ), array( 0, -1),array( 0, 0),
+            array( 0,1 ), array( 1,-1), array( 1,0 ), array( 1, 1 )
+        );
+        for ($x = 1; $x <= 8; $x++) {
+            for ($y = 1; $y <= 8; $y++) {
+                $valid_spot = true;
+                foreach( $directions as $direction ) {
+                    $current_x = $x + $direction[0];
+                    $current_y = $y + $direction[1];
+                    if( $current_x<1 || $current_x>8 || $current_y<1 || $current_y>8 )
+                        continue; // Out of the board => stop here for this direction
+                    else if (self::isWild($board[$current_x][$current_y]['player'])) {
+                        $valid_spot = false;
+                    }
+                }
+                if ($valid_spot) {
+                    if( ! isset( $result[$x] ) ) {
+                        $result[$x] = array();
+                    }
+                    $result[$x][$y] = true;
+                }
+            }
+        }
+        return $result;
     }
 
     // returns true if all players have tokens, false if any player has run out of tokens
@@ -813,7 +819,7 @@ class RivalX extends Table
         $numWilds = self::getNumWilds() + 1;
         $max_wilds = self::MAX_WILDS;
         self::DbQuery( "UPDATE board SET board_player = $numWilds WHERE (board_x, board_y) IN (($x,$y))" );
-        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a wild token at (${x},${y}), ${numWilds}/${max_wilds} placed' ), array(
+        self::notifyAllPlayers( "playToken", clienttranslate( '${player_name} places a wild token at (${x}, ${y}), ${numWilds}/${max_wilds} placed' ), array(
             'player_id' => $numWilds,
             'player_name' => self::getActivePlayerName(),
             'x' => $x,
