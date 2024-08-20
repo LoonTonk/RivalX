@@ -43,7 +43,7 @@ class view_rivalx_rivalx extends game_view
         /*********** Place your code below:  ************/
         // States that we should start inserting at the 'square' block
         $this->page->begin_block( "rivalx_rivalx", "square" );
-
+        $this->page->begin_block("rivalx_rivalx", "coordinate_marker");
         $hor_scale = 64; // Constant for square width
         $ver_scale = 64; // Constant for square height
         for( $x=1; $x<=8; $x++ ) // Loop the 8 columns..
@@ -57,6 +57,14 @@ class view_rivalx_rivalx extends game_view
                     'LEFT' => round( ($x-1)*$hor_scale+6 ),
                     'TOP' => round( ($y-1)*$ver_scale+6 )
                 ) );
+                if (($x === 1 && $y === 1) || ($x === 8 && $y === 8)) {
+                    $this->page->insert_block( "coordinate_marker", array(
+                        'X' => $x,
+                        'Y' => $y,
+                        'LEFT' => round( ($x-1)*$hor_scale+6 ),
+                        'TOP' => round( ($y-1)*$ver_scale+6 )
+                    ));
+                }
             }
         }
 

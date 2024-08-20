@@ -152,6 +152,17 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             });
             this.addTooltip("lastPlayed_".concat(x, "_").concat(y, "_").concat(lastPlayed), lastPlayedToolTip, '');
         };
+        RivalX.prototype.addTokenOutline = function (x, y) {
+            dojo.place(this.format_block('jstpl_token_outline', {
+                x_y: "".concat(x, "_").concat(y),
+            }), 'board');
+            this.placeOnObject("token_outline_".concat(x, "_").concat(y), "square_".concat(x, "_").concat(y));
+        };
+        RivalX.prototype.clearTokenOutline = function () {
+            document.querySelectorAll('.token_outline').forEach(function (element) {
+                dojo.destroy(element);
+            });
+        };
         RivalX.prototype.markSelectableToken = function (x, y) {
             var selectable_token = $("token_".concat(x, "_").concat(y));
             if (selectable_token === null) {
@@ -427,7 +438,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 throw new Error('square is null! Make sure that this function is being connected to a DOM HTMLElement.');
             }
             if (this.checkAction('placeToken', true)) {
-                this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getCurrentPlayerId());
+                this.addTokenOutline(parseInt(x), parseInt(y));
                 this.ajaxcall("/".concat(this.game_name, "/").concat(this.game_name, "/placeToken.html"), {
                     x: x,
                     y: y,
@@ -438,7 +449,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 var selected = document.querySelector('.selected');
                 if (selected !== null) {
                     if (square.classList.contains('possibleMove')) {
-                        this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getCurrentPlayerId());
+                        this.addTokenOutline(parseInt(x), parseInt(y));
                         var _b = selected.closest('[id]').id.split('_'), _square_1 = _b[0], old_x = _b[1], old_y = _b[2];
                         this.ajaxcall("/".concat(this.game_name, "/").concat(this.game_name, "/moveWild.html"), {
                             old_x: old_x, old_y: old_y, new_x: x, new_y: y, lock: true
@@ -454,7 +465,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             }
             else if (this.checkAction('placeWild')) {
                 if (square.classList.contains('possibleMove')) {
-                    this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getCurrentPlayerId());
+                    this.addTokenOutline(parseInt(x), parseInt(y));
                     this.ajaxcall("/".concat(this.game_name, "/").concat(this.game_name, "/placeWild.html"), {
                         x: x,
                         y: y,
@@ -541,6 +552,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 var tokenCounter = this.remainingTokensCounter[id];
                 tokenCounter.incValue(-1);
                 this.addLastPlayedToBoard(notif.args.x, notif.args.y, notif.args.lastPlayed);
+                this.clearTokenOutline();
             }
         };
         RivalX.prototype.notif_newScores = function (notif) {
@@ -559,8 +571,8 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             }
             token.id = "token_".concat(notif.args.new_x, "_").concat(notif.args.new_y);
             this.removeSelectable(notif.args.new_x, notif.args.new_y);
-            console.log("add last played to board current player id: " + this.getActivePlayerId());
             this.addLastPlayedToBoard(notif.args.new_x, notif.args.new_y, this.getActivePlayerId());
+            this.clearTokenOutline();
         };
         RivalX.prototype.notif_removeTokens = function (notif) {
             var _this = this;

@@ -433,35 +433,16 @@ class RivalX extends Table
         $scoreChangeMessage .= $scoreLossMessage;
 
         $player_name = $this->getPlayerNameById($player_id);
-        if ($patternName !== 'Combination') {
-            self::notifyAllPlayers( 'scorePattern', clienttranslate('${player_name} has completed a ${pattern_name} pattern').', '.$scoreChangeMessage, array( //TODO: list tiles the pattern was on?
+        $pattern_message = sprintf(self::_('%s has completed a %s pattern'), $player_name, $patternName);
+        $pattern_message .= strlen($scoreChangeMessage) === 0 ? '' : ', '.$scoreChangeMessage;
+        foreach($patterns as $index => $pattern) {
+            self::notifyAllPlayers( 'scorePattern', $pattern_message, array( //TODO: list tiles the pattern was on?
                 'x' => $centerToken['x'],
                 'y' => $centerToken['y'],
-                'patternCode' => $patterns[0],
+                'patternCode' => $pattern,
                 'player_id' => $player_id,
-                'player_name' => $player_name,
-                'pattern_name' => $patternName,
-            ) ); 
-        } else {
-            foreach($patterns as $index => $pattern) {
-                if ($index === 0) {
-                    self::notifyAllPlayers( 'scorePattern', clienttranslate('${player_name} has completed a ${pattern_name} pattern').', '.$scoreChangeMessage, array( //TODO: list tiles the pattern was on?
-                        'x' => $centerToken['x'],
-                        'y' => $centerToken['y'],
-                        'patternCode' => $pattern,
-                        'player_id' => $player_id,
-                        'player_name' => $player_name,
-                        'pattern_name' => $patternName,
-                    ) );
-                } else {
-                    self::notifyAllPlayers( 'scorePattern', '', array( //TODO: list tiles the pattern was on?
-                        'x' => $centerToken['x'],
-                        'y' => $centerToken['y'],
-                        'patternCode' => $pattern,
-                        'player_id' => $player_id,
-                    ) );
-                }
-            }
+            ) );
+            $pattern_message = '';
         }
 
         self::notifyAllPlayers('removeTokens', '', $tokensToRemove);

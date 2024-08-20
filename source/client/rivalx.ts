@@ -201,6 +201,19 @@ class RivalX extends Gamegui
 		this.addTooltip(`lastPlayed_${x}_${y}_${lastPlayed}`, lastPlayedToolTip, '');
 	}
 
+	addTokenOutline(x: number, y: number) {
+		dojo.place( this.format_block( 'jstpl_token_outline', {
+			x_y: `${x}_${y}`,
+		} ) , 'board' );
+		this.placeOnObject( `token_outline_${x}_${y}`, `square_${x}_${y}` );
+	}
+
+	clearTokenOutline() {
+		document.querySelectorAll('.token_outline').forEach(element => {
+			dojo.destroy(element);
+		});
+	}
+
 	markSelectableToken(x: number, y: number) {
 		var selectable_token = $(`token_${x}_${y}`);
 		if (selectable_token === null) {
@@ -503,7 +516,7 @@ class RivalX extends Gamegui
 		// Check that this action is possible at this moment (shows error dialog if not possible)
 		if( this.checkAction( 'placeToken', true ) ) {
 			// Remove lastPlayed from the previous token, add it to the new one
-			this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getCurrentPlayerId());
+			this.addTokenOutline(parseInt(x), parseInt(y));
 			this.ajaxcall( `/${this.game_name}/${this.game_name}/placeToken.html`, {
 				x, y, lock: true
 			}, this, function() {} );
@@ -511,8 +524,7 @@ class RivalX extends Gamegui
 			const selected = document.querySelector('.selected');
 			if (selected !== null) { // There is a selected token
 				if (square.classList.contains('possibleMove')) {
-					// Remove lastPlayed from the previous token, add it to the new one
-					this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getCurrentPlayerId());
+					this.addTokenOutline(parseInt(x), parseInt(y));
 					let [_square_, old_x, old_y] = selected.closest('[id]')!.id.split('_');
 					this.ajaxcall( `/${this.game_name}/${this.game_name}/moveWild.html`, {
 						old_x: old_x, old_y: old_y, new_x: x, new_y: y, lock: true
@@ -525,7 +537,7 @@ class RivalX extends Gamegui
 			}
 		} else if (this.checkAction('placeWild')) {
 			if (square.classList.contains('possibleMove')) {
-				this.addLastPlayedToBoard(parseInt(x), parseInt(y), this.getCurrentPlayerId());
+				this.addTokenOutline(parseInt(x), parseInt(y));
 				this.ajaxcall( `/${this.game_name}/${this.game_name}/placeWild.html`, {
 					x, y, lock: true
 				}, this, function() {} );
@@ -673,6 +685,7 @@ class RivalX extends Gamegui
 			const tokenCounter = this.remainingTokensCounter[id];
 			tokenCounter!.incValue(-1);
 			this.addLastPlayedToBoard(notif.args.x, notif.args.y, notif.args.lastPlayed);
+			this.clearTokenOutline();
 		}
 	}
 
@@ -696,8 +709,8 @@ class RivalX extends Gamegui
 		}
 		token.id = `token_${notif.args.new_x}_${notif.args.new_y}`;
 		this.removeSelectable(notif.args.new_x, notif.args.new_y);
-		console.log("add last played to board current player id: " + this.getActivePlayerId());
 		this.addLastPlayedToBoard(notif.args.new_x, notif.args.new_y, this.getActivePlayerId());
+		this.clearTokenOutline();
 	}
 
 	notif_removeTokens(notif: NotifAs<'removeTokens'>) {

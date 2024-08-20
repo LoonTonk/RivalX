@@ -6,6 +6,32 @@
  *
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
+
+
+
+ .tokencolor_0 {
+  background: linear-gradient(135deg, #a0e4ff, #d6b4fc, #ffc2e0);
+  opacity: 0.8;
+  background-position: 0px 0px;
+  animation: iridescentShift 8s infinite linear;
+}
+.tokencolor_0::before {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
+  border-radius: 50%;
+}
+
+@keyframes iridescentShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
  * -----
  */
 #board {
@@ -18,6 +44,14 @@
   right: 0;
   bottom: 0;
   position: relative;
+}
+
+.coordinate_marker {
+  width: 40px;
+  height: 20px;
+  position: absolute;
+  z-index: 50;
+  pointer-events: none;
 }
 
 .square {
@@ -80,6 +114,15 @@
 
 .tokencolor_FFE119 {
   background-position: -224px 0px;
+}
+
+.token_outline {
+  background-position: -280px 0px;
+  z-index: 3;
+}
+
+.hide_lastPlayed .lastPlayed {
+  opacity: 0;
 }
 
 .lastPlayed {
