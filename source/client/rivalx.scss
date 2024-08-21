@@ -47,19 +47,20 @@
     position: relative;
 }
 .show_notation #board { // change this stuff for the board with notation on it
-	margin-bottom: 50px; // Make sure the bottom has a margin so the markers can clearly be seen
+	margin-bottom: 40px; // Make sure the bottom has a margin so the markers can clearly be seen
 }
 
 .coordinate_marker {
-	width: 40px;
-	height: 20px;
+	width: auto;
+	height: auto;
 	position: absolute;
 	z-index: 50;
 	pointer-events: none;
+	font-size: 16pt;
 }
 
 .hide_notation .coordinate_marker {
-	opacity: 0;
+	display: none;
 }
 
 .square {
@@ -132,7 +133,7 @@
 .token_outline { background-image: url('img/rivalxtokens.png'); background-position: -280px 0px; z-index: 3; } //TODO: add token_outline to whatever token set looks better
 
 .hide_lastPlayed .lastPlayed {
-	opacity: 0;
+	display: none;
 }
 
 .lastPlayed {
@@ -171,24 +172,6 @@
 }
 .selectable.selected {
 	animation: none;
-}
-
-.playertokens {
-	width: 64px;
-	height: 64px;
-	background-image: url("img/backgroundcircle.png");
-	position: relative;
-  }
-.displayToken {
-	top: 50%; /* Move it to the middle vertically */
-	left: 50%; /* Move it to the middle horizontally */
-	transform: translate(-50%, -50%) scale(0.7); /* Offset by half of its own width and height */
-}
-.counter {
-	position: absolute;
-	top: 50%; /* Move it to the middle vertically */
-	left: 50%; /* Move it to the middle horizontally */
-	transform: translate(-50%, 50%) ; /* Offset by half of its own width and height */
 }
 
 .pattern {
@@ -256,13 +239,35 @@
 	transition: opacity 0.3s ease;
 	z-index: 10; /* Ensure it's on top */
   }
-  .square.possibleMove:hover::before {
+.square.possibleMove:hover::before {
 	opacity: 1; /* Show on hover */
-  }
+}
 
+.playertokens {
+	display: flex;
+    justify-content: flex-start; /* or other values like center, space-around, etc. */
+    align-items: center; /* Aligns items vertically */
+	margin-right: 20px;
+  }
+.displayToken {
+	position: relative;
+	scale: 0.8;
+}
+.counter {
+	font-size: 24pt;
+}
+.player_board {
+	display: flex;
+    justify-content: flex-start; /* or other values like center, space-around, etc. */
+    align-items: center; /* Aligns items vertically */
+}
 .team {
 	width: 62px;
 	height: 62px;
+}
+
+.team_0 { // teams not enabled
+	display: none;
 }
 .team_1 {
 	background-color:rgb(27, 53, 204);

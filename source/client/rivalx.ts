@@ -46,12 +46,16 @@ class RivalX extends Gamegui
 				if (player === undefined) {
 					throw new Error("Player is undefined on setup");
 				}
-				// Setting up players boards if needed
+				// Setting up players boards
 				var player_board_div = $('player_board_'+player_id);
 				if (player_board_div === null) {
 					throw new Error("when trying to get player board it was null");
 				}
-				dojo.place( this.format_block('jstpl_player_board', {id:player.id, color:player.color} ), player_board_div );
+				dojo.place( this.format_block('jstpl_player_board', {
+					id:player.id,
+					color:player.color, 
+					teamNum: gamedatas.playerTeams[parseInt(player_id)]} ), 
+					player_board_div );
 				const counter = new ebg.counter();
 				counter.create('remainingTokens_'+player_id);
 				const tokensLeft = gamedatas.tokensLeft[parseInt(player_id)];
@@ -62,10 +66,7 @@ class RivalX extends Gamegui
 				}
 				counter.setValue(parseInt(tokensLeft));
 				this.remainingTokensCounter[player_id] = counter;
-
-				if (gamedatas.isTeams) {
-					dojo.place( this.format_block('jstpl_team_icon', {teamNum: gamedatas.playerTeams[parseInt(player_id)]} ), player_board_div );
-				}
+				this.addTooltip(`playertoken_${player_id}`, _('X-pieces remaining'), '');
 		}
 
 		// Place the tokens on the board
@@ -694,6 +695,7 @@ class RivalX extends Gamegui
 
 	notif_newScores( notif: NotifAs<'newScores'> )
 	{
+		console.log('newScores has been called');
 		for( var player_id in notif.args.scores )
 		{
 			let counter = this.scoreCtrl[ player_id ];

@@ -36,7 +36,11 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 if (player_board_div === null) {
                     throw new Error("when trying to get player board it was null");
                 }
-                dojo.place(this.format_block('jstpl_player_board', { id: player.id, color: player.color }), player_board_div);
+                dojo.place(this.format_block('jstpl_player_board', {
+                    id: player.id,
+                    color: player.color,
+                    teamNum: gamedatas.playerTeams[parseInt(player_id)]
+                }), player_board_div);
                 var counter = new ebg.counter();
                 counter.create('remainingTokens_' + player_id);
                 var tokensLeft = gamedatas.tokensLeft[parseInt(player_id)];
@@ -47,9 +51,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 }
                 counter.setValue(parseInt(tokensLeft));
                 this.remainingTokensCounter[player_id] = counter;
-                if (gamedatas.isTeams) {
-                    dojo.place(this.format_block('jstpl_team_icon', { teamNum: gamedatas.playerTeams[parseInt(player_id)] }), player_board_div);
-                }
+                this.addTooltip("playertoken_".concat(player_id), _('X-pieces remaining'), '');
             }
             for (var i in gamedatas.board) {
                 var square = gamedatas.board[i];
@@ -559,6 +561,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             }
         };
         RivalX.prototype.notif_newScores = function (notif) {
+            console.log('newScores has been called');
             for (var player_id in notif.args.scores) {
                 var counter = this.scoreCtrl[player_id];
                 var newScore = notif.args.scores[player_id];

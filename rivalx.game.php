@@ -483,7 +483,7 @@ class RivalX extends Table
 
         self::notifyAllPlayers('removeTokens', '', $tokensToRemove);
         self::notifyAllPlayers( "newScores", '', array(
-            "scores" => $newScores
+            "scores" => self::getCollectionFromDb("SELECT player_id, player_score FROM player", true)
         ) );
 
         // Statistics

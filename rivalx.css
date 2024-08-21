@@ -47,19 +47,20 @@
 }
 
 .show_notation #board {
-  margin-bottom: 50px;
+  margin-bottom: 40px;
 }
 
 .coordinate_marker {
-  width: 40px;
-  height: 20px;
+  width: auto;
+  height: auto;
   position: absolute;
   z-index: 50;
   pointer-events: none;
+  font-size: 16pt;
 }
 
 .hide_notation .coordinate_marker {
-  opacity: 0;
+  display: none;
 }
 
 .square {
@@ -156,7 +157,7 @@
 }
 
 .hide_lastPlayed .lastPlayed {
-  opacity: 0;
+  display: none;
 }
 
 .lastPlayed {
@@ -207,26 +208,6 @@
 }
 .selectable.selected {
   animation: none;
-}
-
-.playertokens {
-  width: 64px;
-  height: 64px;
-  background-image: url("img/backgroundcircle.png");
-  position: relative;
-}
-
-.displayToken {
-  top: 50%; /* Move it to the middle vertically */
-  left: 50%; /* Move it to the middle horizontally */
-  transform: translate(-50%, -50%) scale(0.7); /* Offset by half of its own width and height */
-}
-
-.counter {
-  position: absolute;
-  top: 50%; /* Move it to the middle vertically */
-  left: 50%; /* Move it to the middle horizontally */
-  transform: translate(-50%, 50%); /* Offset by half of its own width and height */
 }
 
 .pattern {
@@ -333,9 +314,35 @@
   opacity: 1; /* Show on hover */
 }
 
+.playertokens {
+  display: flex;
+  justify-content: flex-start; /* or other values like center, space-around, etc. */
+  align-items: center; /* Aligns items vertically */
+  margin-right: 20px;
+}
+
+.displayToken {
+  position: relative;
+  scale: 0.8;
+}
+
+.counter {
+  font-size: 24pt;
+}
+
+.player_board {
+  display: flex;
+  justify-content: flex-start; /* or other values like center, space-around, etc. */
+  align-items: center; /* Aligns items vertically */
+}
+
 .team {
   width: 62px;
   height: 62px;
+}
+
+.team_0 {
+  display: none;
 }
 
 .team_1 {

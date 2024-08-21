@@ -63,14 +63,14 @@ class view_rivalx_rivalx extends game_view
                     $this->page->insert_block( "coordinate_marker", array(
                         'coordinate' => $column_markers[$y-1],
                         'LEFT' => round( ($x-1)*$hor_scale-15 ),
-                        'TOP' => round( ($y-1)*$ver_scale+15 )
+                        'TOP' => round( ($y-1)*$ver_scale+20 )
                     ));
                 }
                 if ($y === 8) {
                     $this->page->insert_block( "coordinate_marker", array(
                         'coordinate' => $row_markers[$x-1],
                         'LEFT' => round( ($x-1)*$hor_scale+30 ),
-                        'TOP' => round( ($y-1)*$ver_scale+80 )
+                        'TOP' => round( ($y-1)*$ver_scale+75 )
                     ));
                 }
             }
