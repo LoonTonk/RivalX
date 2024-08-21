@@ -33,8 +33,8 @@ $machinestates = array(
 	),
 	2 => array(
 		'name' => 'wildPlacement',
-		'description' => clienttranslate('${actplayer} must place ${numWildsLeft} more wild tokens on the board'),
-		'descriptionmyturn' => clienttranslate('${you} must place ${numWildsLeft} more wild tokens on the board'),
+		'description' => clienttranslate('${actplayer} must place ${numWildsLeft} more Wild X-pieces on the board'),
+		'descriptionmyturn' => clienttranslate('${you} must place ${numWildsLeft} more Wild X-pieces on the board'),
 		'type' => 'activeplayer',
 		'args' => 'argwildPlacement',
 		'possibleactions' => ['placeWild'],
@@ -45,8 +45,8 @@ $machinestates = array(
 	),
 	10 => array(
 		'name' => 'playerTurn',
-		'description' => clienttranslate('${actplayer} must place a token'),
-		'descriptionmyturn' => clienttranslate('${you} must place a token'),
+		'description' => clienttranslate('${actplayer} must place an X-piece'),
+		'descriptionmyturn' => clienttranslate('${you} must place an X-piece'),
 		'type' => 'activeplayer',
 		'args' => 'argplayerTurn',
 		'possibleactions' => ['placeToken'],
@@ -68,8 +68,8 @@ $machinestates = array(
 	),
 	20 => array(
 		'name' => 'repositionWilds',
-		'description' => clienttranslate('${actplayer} has scored a pattern and can reposition wilds'),
-		'descriptionmyturn' => clienttranslate('${you} have scored a pattern and can reposition wilds'),
+		'description' => clienttranslate('${actplayer} has scored a pattern and can reposition Wilds'),
+		'descriptionmyturn' => clienttranslate('${you} have scored a pattern and can reposition Wilds'),
 		'type' => 'activeplayer',
 		'args' => 'argrepositionWilds',
 		'possibleactions' => ['moveWild', 'finishTurn'],

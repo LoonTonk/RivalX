@@ -29,9 +29,12 @@
     <div id="square_{X}_{Y}" class="square" style="left: {LEFT}px; top: {TOP}px;"></div>
     <!-- END square -->
     <!-- BEGIN coordinate_marker -->
-    <div class="coordinate_marker" style="left: {LEFT}px; top: {TOP}px;">({X}, {Y})</div>
+    <div class="coordinate_marker" style="left: {LEFT}px; top: {TOP}px;">{coordinate}</div>
     <!-- END coordinate_marker -->
 </div>
+
+<audio id="audiosrc_rivalx_instant_win_sound" src="{GAMETHEMEURL}img/rivalx_instant_win_sound.mp3" preload="none" autobuffer></audio>
+<audio id="audiosrc_o_rivalx_instant_win_sound" src="{GAMETHEMEURL}img/rivalx_instant_win_sound.ogg" preload="none" autobuffer></audio>
 
 <script type="text/javascript">
 

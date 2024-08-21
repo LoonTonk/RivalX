@@ -29,8 +29,8 @@
 	// Note: ID=2: your first state
 	"2": {
 		"name": "wildPlacement",
-		"description": "${actplayer} must place ${numWildsLeft} more wild tokens on the board",
-		"descriptionmyturn": "${you} must place ${numWildsLeft} more wild tokens on the board",
+		"description": "${actplayer} must place ${numWildsLeft} more Wild X-pieces on the board",
+		"descriptionmyturn": "${you} must place ${numWildsLeft} more Wild X-pieces on the board",
 		"type": "activeplayer",
 		"args": "argwildPlacement",
         "argsType": {
@@ -48,8 +48,8 @@
 
 	"10": {
         "name": "playerTurn",
-        "description": "${actplayer} must place a token",
-        "descriptionmyturn": "${you} must place a token",
+        "description": "${actplayer} must place an X-piece",
+        "descriptionmyturn": "${you} must place an X-piece",
         "type": "activeplayer",
 		"args": "argplayerTurn",
         "argsType": {
@@ -80,8 +80,8 @@
 
 	"20": {
         "name": "repositionWilds",
-        "description": "${actplayer} has scored a pattern and can reposition wilds",
-        "descriptionmyturn": "${you} have scored a pattern and can reposition wilds",
+        "description": "${actplayer} has scored a pattern and can reposition Wilds",
+        "descriptionmyturn": "${you} have scored a pattern and can reposition Wilds",
         "type": "activeplayer",
 		"args": "argrepositionWilds",
 		"argsType": {

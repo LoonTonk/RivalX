@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS `board` (
     `board_player_tile` int(10) DEFAULT -1,
     `board_selectable` TINYINT(1) DEFAULT 0,
     `board_lastPlayed` int(10) DEFAULT -1,
+    `board_patterns` varchar(255) DEFAULT '',
     PRIMARY KEY (`board_x`,`board_y`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

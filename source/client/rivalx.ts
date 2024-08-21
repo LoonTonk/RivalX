@@ -23,7 +23,7 @@ declare class Counter {
 	disable(): void; // Sets value to "-"
   }
 
-/** The root for all of your game code. */ // TODO: make lastPlayed tooltip go above token tooltip
+/** The root for all of your game code. */
 class RivalX extends Gamegui
 {
 	static readonly MAX_WILDS: number = 5;
@@ -39,7 +39,7 @@ class RivalX extends Gamegui
 	override setup(gamedatas: Gamedatas): void
 	{
 		console.log( "Starting game setup" );
-
+		
 		// Setting up player boards, specifically counter for tokens left and teams (if applicable)
 		for( var player_id in gamedatas.players ) {
  				var player = gamedatas.players[player_id];
@@ -167,7 +167,7 @@ class RivalX extends Gamegui
 	/** Removes the 'selectable' class from one element and changes the tooltip */
 	removeSelectable(x: number, y: number) {
 		dojo.empty(`token_${x}_${y}`);
-		this.addTooltip(`token_${x}_${y}`, _('This is a wild token'), '');
+		this.addTooltip(`token_${x}_${y}`, _('This is a Wild X-piece'), '');
 	}
 
 	/** Removes the 'possibleMove' class from all elements. */
@@ -240,13 +240,13 @@ class RivalX extends Gamegui
 		}
 		switch(gameState) {
 			case ('wildPlacement'):
-				this.addTooltipToClass( 'possibleMove', '', _('Place a wild here') );
+				this.addTooltipToClass( 'possibleMove', '', _('Place a Wild here') );
 				break;
 			case ('playerTurn'):
-				this.addTooltipToClass( 'possibleMove', '', _('Place your token here') );
+				this.addTooltipToClass( 'possibleMove', '', _('Place your X-piece here') );
 				break;
 			case ('moveWild'):
-				this.addTooltipToClass( 'possibleMove', '', _('Move the selected wild here') );
+				this.addTooltipToClass( 'possibleMove', '', _('Move the selected Wild here') );
 				break;
 			case ('repositionWild'):
 				break;
@@ -265,7 +265,7 @@ class RivalX extends Gamegui
 			} ) , 'board' );
 			$(`token_${x}_${y}`)?.classList.add(`wild_${player_id}`);
 			player_id = this.getCurrentPlayerId();
-			this.addTooltip( `token_${x}_${y}`, _('This is a wild token'), '');
+			this.addTooltip( `token_${x}_${y}`, _('This is a Wild X-piece'), '');
 		} else { // it's a player token
 			let player = this.gamedatas.players[ player_id ];
 			if (!player) {
@@ -275,7 +275,10 @@ class RivalX extends Gamegui
 				color: player.color,
 				x_y: `${x}_${y}`
 			} ) , 'board' );
-			this.addTooltip( `token_${x}_${y}`, _('This is a player token'), ''); // TODO: change to be ****DYNAMIC**** and say whose token it is
+			const playerTokenTooltip = dojo.string.substitute( _("This is ${player}'s X-piece"), {
+				player: this.gamedatas.players[player_id]!.name
+			} );
+			this.addTooltip( `token_${x}_${y}`, playerTokenTooltip, '');
 		}
 		dojo.connect( $(`token_${x}_${y}`), 'onclick', this, 'onselectToken' );
 		if (selectable) {
@@ -533,7 +536,7 @@ class RivalX extends Gamegui
 					this.showMessage(_("Wilds cannot be repositioned to create a pattern, except for an Instant Win pattern with 5 Wilds"), "error");
 				}
 			} else { // there is not a selected
-				this.showMessage(_("Select a wild to reposition it, or click 'Finish Turn'"), "error");
+				this.showMessage(_("Select a Wild to reposition it, or click 'Finish Turn'"), "error");
 			}
 		} else if (this.checkAction('placeWild')) {
 			if (square.classList.contains('possibleMove')) {
@@ -542,7 +545,7 @@ class RivalX extends Gamegui
 					x, y, lock: true
 				}, this, function() {} );
 			} else {
-				this.showMessage(_("Wilds cannot be placed in any of the 8 tiles directly surrounding another Wild during intial placement"), "error");
+				this.showMessage(_("Wilds cannot be placed in any of the 8 tiles directly surrounding another Wild during initial placement"), "error");
 			}
 		}
 	}
@@ -556,7 +559,7 @@ class RivalX extends Gamegui
 			throw new Error('evt.currentTarget is null! Make sure that this function is being connected to a DOM HTMLElement.');
 		// Check that this action is possible at this moment (shows error dialog if not possible)
 		if( this.checkAction( 'placeToken', true ) ) {
-			this.showMessage(_("A token is already placed here"), "error"); // token or x-piece??????????????
+			this.showMessage(_("An X-piece is already placed here"), "error"); // token or x-piece??????????????
 			return;
 		} else if (this.checkAction('moveWild')) {
 			// Get the clicked square x and y
@@ -585,7 +588,7 @@ class RivalX extends Gamegui
 					}
 				}
 			} else {
-				this.showMessage(_("This token cannot be selected; only Wilds used in the pattern can be moved"), "error");
+				this.showMessage(_("This X-piece cannot be selected; only Wilds used in the pattern can be repositioned"), "error");
 			}
 		}
 	}
@@ -665,11 +668,11 @@ class RivalX extends Gamegui
 		dojo.subscribe( 'markSelectableTokens', this, "notif_markSelectableTokens" );
 		this.notifqueue.setSynchronous( 'markSelectableTokens', 200 );
 		dojo.subscribe( 'blockadeWin', this, "notif_blockadeWin" );
-		this.notifqueue.setSynchronous( 'blockadeWin', 500 );
+		this.notifqueue.setSynchronous( 'blockadeWin', 5000 );
 		dojo.subscribe( 'instantWin', this, "notif_instantWin" ); // TODO: have some sort of animation for an instant win, and probably a sound effect too
-		this.notifqueue.setSynchronous( 'instantWin', 500 );
+		this.notifqueue.setSynchronous( 'instantWin', 5000 );
 		dojo.subscribe( 'pointsWin', this, "notif_pointsWin" );
-		this.notifqueue.setSynchronous( 'pointsWin', 500 );
+		this.notifqueue.setSynchronous( 'pointsWin', 5000 );
 		// [name: string]: any; // Uncomment to remove type safety on notification names and arguments
 		// With base Gamegui class...
 		// dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
@@ -760,7 +763,13 @@ class RivalX extends Gamegui
 	}
 
 	notif_instantWin() {
-		console.log("instant win!");
+		this.clearSelectable();
+		document.querySelectorAll('.tokencolor_0').forEach((element, index) => {
+			element.classList.add('instant_win');
+			const html_element = <HTMLElement>element;
+			html_element.style.animationDelay = `${index * 1}s`;
+		});
+		playSound('rivalx_instant_win_sound');
 	}
 
 	/*

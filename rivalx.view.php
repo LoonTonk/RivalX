@@ -46,6 +46,8 @@ class view_rivalx_rivalx extends game_view
         $this->page->begin_block("rivalx_rivalx", "coordinate_marker");
         $hor_scale = 64; // Constant for square width
         $ver_scale = 64; // Constant for square height
+        $column_markers = ['8','7','6','5','4','3','2','1'];
+        $row_markers = ['a','b','c','d','e','f','g','h'];
         for( $x=1; $x<=8; $x++ ) // Loop the 8 columns..
         {
             for( $y=1; $y<=8; $y++ ) // Loop the 8 rows..
@@ -57,12 +59,18 @@ class view_rivalx_rivalx extends game_view
                     'LEFT' => round( ($x-1)*$hor_scale+6 ),
                     'TOP' => round( ($y-1)*$ver_scale+6 )
                 ) );
-                if (($x === 1 && $y === 1) || ($x === 8 && $y === 8)) {
+                if ($x === 1) {
                     $this->page->insert_block( "coordinate_marker", array(
-                        'X' => $x,
-                        'Y' => $y,
-                        'LEFT' => round( ($x-1)*$hor_scale+6 ),
-                        'TOP' => round( ($y-1)*$ver_scale+6 )
+                        'coordinate' => $column_markers[$y-1],
+                        'LEFT' => round( ($x-1)*$hor_scale-15 ),
+                        'TOP' => round( ($y-1)*$ver_scale+15 )
+                    ));
+                }
+                if ($y === 8) {
+                    $this->page->insert_block( "coordinate_marker", array(
+                        'coordinate' => $row_markers[$x-1],
+                        'LEFT' => round( ($x-1)*$hor_scale+30 ),
+                        'TOP' => round( ($y-1)*$ver_scale+80 )
                     ));
                 }
             }

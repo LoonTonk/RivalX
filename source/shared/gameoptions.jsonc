@@ -18,7 +18,7 @@
             // This is the current rule set we have implemented
             "1": {
                 "name": "Free-For-All",
-                "description": "First player to reach enough points wins."
+                "description": "First player to reach 10 points wins."
             },
             "2": {
                 "name": "2v2 Teams",

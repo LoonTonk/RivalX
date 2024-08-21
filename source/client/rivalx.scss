@@ -34,6 +34,7 @@
  * -----
  */
 // TODO: add trigram to all the classes to avoid namespace conflict
+// TODO: update selected/selectable wild to fit the changes
 #board {
     // Setup Image
     width: 522px;
@@ -45,6 +46,9 @@
     // Tokens and squares are absolutely placed relative to the board
     position: relative;
 }
+.show_notation #board { // change this stuff for the board with notation on it
+	margin-bottom: 50px; // Make sure the bottom has a margin so the markers can clearly be seen
+}
 
 .coordinate_marker {
 	width: 40px;
@@ -53,6 +57,11 @@
 	z-index: 50;
 	pointer-events: none;
 }
+
+.hide_notation .coordinate_marker {
+	opacity: 0;
+}
+
 .square {
     // Size of a square
     width: 62px;
@@ -71,18 +80,56 @@
 	z-index: 1; 
 	pointer-events: none;
 }
-.tilecolor_4363D8 {   background-color: #A4C8F0 } // TODO: change the colors ("it looks too much like a baby shower")
-.tilecolor_E6194B { background-color:#FF9AA2; }
-.tilecolor_3CB44B { background-color: #A1D99B; }
-.tilecolor_FFE119 { background-color: #FFF4B3; } // TODO: orange instead of yellow?
+.tilecolor_009bd2 { background-color: #0077a3;
+}
+.tilecolor_e53f2c { background-color:#b23223;
+ }
+.tilecolor_050303 { background-color: #2c2c2c;
+ }
+.tilecolor_ffc750 { background-color: #d9a03e;
+ }
 
-.token {width: 56px; height: 56px; position: absolute; z-index: 4; background-image: url('img/rivalxtokens.png'); transform: scale(0.9) }
-.tokencolor_0 { background-position: 0px 0px; } // Wild token
-.tokencolor_4363D8 { background-position: -56px 0px; } // Blue token
-.tokencolor_E6194B { background-position: -112px 0px; } // Red token
-.tokencolor_3CB44B { background-position: -168px 0px; } // Green token
-.tokencolor_FFE119 { background-position: -224px 0px; } // Yellow token
-.token_outline { background-position: -280px 0px; z-index: 3; }
+.token {
+	width: 56px;
+	height: 56px; 
+	position: absolute; 
+	z-index: 4; 
+	background-image: url('img/rivalxtokens4.png'); 
+	transform: scale(0.9)
+}
+// .tokencolor_0 { background-position: 0px 0px; } // Wild token
+.tokencolor_0 { // TODO: test
+	opacity: 1;
+	background-position: 0px 0px;
+	animation: pulse 1s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes pulse {
+	0% {
+	  opacity: 0.8;
+	}
+	to {
+	  opacity: 1;
+	}
+  }
+
+.instant_win { animation: instant_win_animation 2s ease-in-out infinite; }
+@keyframes instant_win_animation {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+    50% {
+        transform: rotate(180deg) scale(1.5); /* Increase size */
+    }
+    100% {
+        transform: rotate(360deg) scale(1);
+    }
+}
+
+.tokencolor_009bd2 { background-position: -56px 0px; } // Blue token
+.tokencolor_e53f2c { background-position: -112px 0px; } // Red token
+.tokencolor_050303 { background-position: -168px 0px; } // Green token
+.tokencolor_ffc750 { background-position: -224px 0px; } // Yellow token
+.token_outline { background-image: url('img/rivalxtokens.png'); background-position: -280px 0px; z-index: 3; } //TODO: add token_outline to whatever token set looks better
 
 .hide_lastPlayed .lastPlayed {
 	opacity: 0;
@@ -96,10 +143,10 @@
 	position: absolute;
 	background-image: url('img/rivalxlastPlayed.png');
 }
-.lastPlayedcolor_4363D8 { background-position: 0px 0px; } // Blue lastPlayed
-.lastPlayedcolor_E6194B { background-position: -45px 0px; } // Red lastPlayed
-.lastPlayedcolor_3CB44B { background-position: -90px 0px; } // Green lastPlayed
-.lastPlayedcolor_FFE119 { background-position: -135px 0px; } // Yellow lastPlayed
+.lastPlayedcolor_009bd2 { background-position: 0px 0px; } // Blue lastPlayed
+.lastPlayedcolor_e53f2c { background-position: -45px 0px; } // Red lastPlayed
+.lastPlayedcolor_050303 { background-position: -90px 0px; } // Green lastPlayed
+.lastPlayedcolor_ffc750 { background-position: -135px 0px; } // Yellow lastPlayed
 
 .selectable {
 	animation: selectable-token-animation 1s ease-in-out infinite alternate-reverse;
@@ -153,10 +200,10 @@
 	background-position: var(--x-pos, 0px) var(--y-pos, 0px);
 	transition: opacity 1s ease-in-out;
 }
-.patterncolor_4363D8 { --y-pos: 0px; }
-.patterncolor_E6194B { --y-pos: -330px; }
-.patterncolor_3CB44B { --y-pos: -660px; }
-.patterncolor_FFE119 { --y-pos: -990px; }
+.patterncolor_009bd2 { --y-pos: 0px; }
+.patterncolor_e53f2c { --y-pos: -330px; }
+.patterncolor_050303 { --y-pos: -660px; }
+.patterncolor_ffc750 { --y-pos: -990px; }
 .patterntype_row, .patterntype_col {
 	height: 330px;
 	width: 74px;

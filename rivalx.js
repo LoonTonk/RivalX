@@ -122,7 +122,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
         };
         RivalX.prototype.removeSelectable = function (x, y) {
             dojo.empty("token_".concat(x, "_").concat(y));
-            this.addTooltip("token_".concat(x, "_").concat(y), _('This is a wild token'), '');
+            this.addTooltip("token_".concat(x, "_").concat(y), _('This is a Wild X-piece'), '');
         };
         RivalX.prototype.clearPossibleMoves = function () {
             var _this = this;
@@ -183,13 +183,13 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             }
             switch (gameState) {
                 case ('wildPlacement'):
-                    this.addTooltipToClass('possibleMove', '', _('Place a wild here'));
+                    this.addTooltipToClass('possibleMove', '', _('Place a Wild here'));
                     break;
                 case ('playerTurn'):
-                    this.addTooltipToClass('possibleMove', '', _('Place your token here'));
+                    this.addTooltipToClass('possibleMove', '', _('Place your X-piece here'));
                     break;
                 case ('moveWild'):
-                    this.addTooltipToClass('possibleMove', '', _('Move the selected wild here'));
+                    this.addTooltipToClass('possibleMove', '', _('Move the selected Wild here'));
                     break;
                 case ('repositionWild'):
                     break;
@@ -206,7 +206,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                 }), 'board');
                 (_a = $("token_".concat(x, "_").concat(y))) === null || _a === void 0 ? void 0 : _a.classList.add("wild_".concat(player_id));
                 player_id = this.getCurrentPlayerId();
-                this.addTooltip("token_".concat(x, "_").concat(y), _('This is a wild token'), '');
+                this.addTooltip("token_".concat(x, "_").concat(y), _('This is a Wild X-piece'), '');
             }
             else {
                 var player = this.gamedatas.players[player_id];
@@ -217,7 +217,10 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                     color: player.color,
                     x_y: "".concat(x, "_").concat(y)
                 }), 'board');
-                this.addTooltip("token_".concat(x, "_").concat(y), _('This is a player token'), '');
+                var playerTokenTooltip = dojo.string.substitute(_("This is ${player}'s X-piece"), {
+                    player: this.gamedatas.players[player_id].name
+                });
+                this.addTooltip("token_".concat(x, "_").concat(y), playerTokenTooltip, '');
             }
             dojo.connect($("token_".concat(x, "_").concat(y)), 'onclick', this, 'onselectToken');
             if (selectable) {
@@ -460,7 +463,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                     }
                 }
                 else {
-                    this.showMessage(_("Select a wild to reposition it, or click 'Finish Turn'"), "error");
+                    this.showMessage(_("Select a Wild to reposition it, or click 'Finish Turn'"), "error");
                 }
             }
             else if (this.checkAction('placeWild')) {
@@ -473,7 +476,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                     }, this, function () { });
                 }
                 else {
-                    this.showMessage(_("Wilds cannot be placed in any of the 8 tiles directly surrounding another Wild during intial placement"), "error");
+                    this.showMessage(_("Wilds cannot be placed in any of the 8 tiles directly surrounding another Wild during initial placement"), "error");
                 }
             }
         };
@@ -482,7 +485,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             if (!(evt.currentTarget instanceof HTMLElement))
                 throw new Error('evt.currentTarget is null! Make sure that this function is being connected to a DOM HTMLElement.');
             if (this.checkAction('placeToken', true)) {
-                this.showMessage(_("A token is already placed here"), "error");
+                this.showMessage(_("An X-piece is already placed here"), "error");
                 return;
             }
             else if (this.checkAction('moveWild')) {
@@ -512,7 +515,7 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
                     }
                 }
                 else {
-                    this.showMessage(_("This token cannot be selected; only Wilds used in the pattern can be moved"), "error");
+                    this.showMessage(_("This X-piece cannot be selected; only Wilds used in the pattern can be repositioned"), "error");
                 }
             }
         };
@@ -539,11 +542,11 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             dojo.subscribe('markSelectableTokens', this, "notif_markSelectableTokens");
             this.notifqueue.setSynchronous('markSelectableTokens', 200);
             dojo.subscribe('blockadeWin', this, "notif_blockadeWin");
-            this.notifqueue.setSynchronous('blockadeWin', 500);
+            this.notifqueue.setSynchronous('blockadeWin', 5000);
             dojo.subscribe('instantWin', this, "notif_instantWin");
-            this.notifqueue.setSynchronous('instantWin', 500);
+            this.notifqueue.setSynchronous('instantWin', 5000);
             dojo.subscribe('pointsWin', this, "notif_pointsWin");
-            this.notifqueue.setSynchronous('pointsWin', 500);
+            this.notifqueue.setSynchronous('pointsWin', 5000);
         };
         RivalX.prototype.notif_playToken = function (notif) {
             this.addTokenOnBoard(notif.args.x, notif.args.y, notif.args.player_id, false);
@@ -612,7 +615,13 @@ define("bgagame/rivalx", ["require", "exports", "ebg/core/gamegui", "ebg/counter
             console.log("blockade win!");
         };
         RivalX.prototype.notif_instantWin = function () {
-            console.log("instant win!");
+            this.clearSelectable();
+            document.querySelectorAll('.tokencolor_0').forEach(function (element, index) {
+                element.classList.add('instant_win');
+                var html_element = element;
+                html_element.style.animationDelay = "".concat(index * 1, "s");
+            });
+            playSound('rivalx_instant_win_sound');
         };
         RivalX.MAX_WILDS = 5;
         return RivalX;
